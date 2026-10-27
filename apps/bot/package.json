@@ -1,0 +1,18 @@
+{
+  "name": "@mys/bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "start": "tsx --env-file-if-exists=../../.env src/index.ts",
+    "register": "tsx --env-file-if-exists=../../.env src/register.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mys/core": "workspace:*",
+    "@mys/db": "workspace:*",
+    "@mys/engine": "workspace:*",
+    "discord.js": "^14.27.0"
+  }
+}
