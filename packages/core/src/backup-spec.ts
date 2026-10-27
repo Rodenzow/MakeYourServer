@@ -212,6 +212,9 @@ export function backupToSpec(state: GuildState): BackupConversion {
   if (raw.onboarding && raw.onboarding.prompts.some((p) => p.options.every((o) => o.roleIds.length === 0 && o.channelIds.length === 0))) {
     raw.onboarding.prompts = raw.onboarding.prompts.filter((p) => p.options.some((o) => o.roleIds.length || o.channelIds.length));
   }
+  // La configuration d’onboarding et l’écran d’accueil proviennent de ce même serveur.
+  if (raw.onboarding) mapping["__onboarding"] = state.id;
+  if (raw.welcomeScreen) mapping["__welcome"] = state.id;
   const spec = ServerSpecSchema.parse(raw);
   return { spec, mapping, skipped };
 }

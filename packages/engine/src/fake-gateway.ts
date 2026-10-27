@@ -8,7 +8,7 @@ import {
   type PermissionKey,
   type StateChannel,
 } from "@mys/core";
-import { GatewayError, type GuildGateway, type MemberInfo, type RawMessage } from "./gateway";
+import { GatewayError, type GuildBasics, type GuildGateway, type MemberInfo, type RawMessage } from "./gateway";
 import { guildPermissionsFor, highestRolePosition } from "./permissions";
 
 /** Erreur simulant l’arrêt brutal du processus juste après une action réussie côté Discord. */
@@ -172,6 +172,11 @@ export class FakeGateway implements GuildGateway {
     s.bot = { userId: this.botUserId, roleIds: roles, permissions: p.toString(), highestRolePosition: this.botTop(), isAdmin: (p & permissionBit("ADMINISTRATOR")) !== 0n };
     s.fetchedAt = new Date().toISOString();
     return s;
+  }
+
+  async fetchGuild(_guildId: string): Promise<GuildBasics> {
+    const s = structuredClone(this.state);
+    return { id: s.id, name: s.name, ownerId: s.ownerId, roles: s.roles, features: s.features };
   }
 
   async getMember(_guildId: string, userId: string): Promise<MemberInfo | null> {

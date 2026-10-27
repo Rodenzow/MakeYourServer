@@ -1,7 +1,7 @@
 import { REST } from "@discordjs/rest";
 import { ChannelFlags, Routes } from "discord-api-types/v10";
 import { permissionBit, type GuildState, type StateChannel, type StateRole } from "@mys/core";
-import { translateDiscordError, type GuildGateway, type MemberInfo, type RawMessage } from "./gateway";
+import { translateDiscordError, type GuildBasics, type GuildGateway, type MemberInfo, type RawMessage } from "./gateway";
 import { guildPermissionsFor, highestRolePosition } from "./permissions";
 
 type Json = Record<string, any>;
@@ -138,6 +138,18 @@ export class DiscordRestGateway implements GuildGateway {
       };
     }
     return state;
+  }
+
+  async fetchGuild(guildId: string): Promise<GuildBasics> {
+    const g = await this.call<Json>(() => this.rest.get(Routes.guild(guildId)));
+    return {
+      id: g.id,
+      name: g.name,
+      ownerId: g.owner_id,
+      features: g.features ?? [],
+      iconUrl: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : null,
+      roles: (g.roles as Json[]).map((r) => ({ id: r.id, name: r.name, color: r.color ?? 0, hoist: !!r.hoist, mentionable: !!r.mentionable, permissions: String(r.permissions), position: r.position, managed: !!r.managed })),
+    };
   }
 
   async getMember(guildId: string, userId: string): Promise<MemberInfo | null> {

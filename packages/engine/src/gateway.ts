@@ -14,6 +14,8 @@ export interface RawMessage {
   nonce?: string | number | null;
 }
 
+export type GuildBasics = Pick<GuildState, "id" | "name" | "ownerId" | "roles" | "features"> & { iconUrl?: string | null };
+
 export interface MemberInfo {
   userId: string;
   roles: string[];
@@ -28,6 +30,8 @@ export interface GuildGateway {
   readonly botUserId: string;
   readonly simulated: boolean;
   fetchState(guildId: string): Promise<GuildState>;
+  /** Lecture légère : propriétaire, rôles et fonctionnalités (contrôles d’accès). */
+  fetchGuild(guildId: string): Promise<GuildBasics>;
   getMember(guildId: string, userId: string): Promise<MemberInfo | null>;
 
   createRole(guildId: string, body: Record<string, unknown>, reason: string): Promise<{ id: string }>;

@@ -334,6 +334,8 @@ export const guildFeatures = pgTable("guild_features", {
       suggestions?: { channelId: string };
       selfRoleIds?: string[];
       rulesRoleIds?: string[];
+      /** Correspondances localId → identifiant Discord pour les jetons {#salon} {@role}. */
+      tokens?: Record<string, string>;
     }>()
     .notNull()
     .default({}),
