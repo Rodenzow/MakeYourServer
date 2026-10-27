@@ -28,7 +28,8 @@ function cloudflareDb(cf: CloudflareRequestContext): Database {
   let db = perRequest.get(cf);
   if (!db) {
     const url = cf.env?.HYPERDRIVE?.connectionString ?? cf.env?.DATABASE_URL ?? getDatabaseUrl();
-    const sql = postgres(url, { max: 1, fetch_types: false, onnotice: () => {} });
+    // connect_timeout court : sur Workers, mieux vaut une erreur rapide qu’une page bloquée 30 s.
+    const sql = postgres(url, { max: 1, fetch_types: false, connect_timeout: 10, onnotice: () => {} });
     db = drizzle(sql, { schema });
     perRequest.set(cf, db);
   }
