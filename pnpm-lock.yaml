@@ -7,6 +7,16 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@mys/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@mys/db':
+        specifier: workspace:*
+        version: link:packages/db
+      '@mys/engine':
+        specifier: workspace:*
+        version: link:packages/engine
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
