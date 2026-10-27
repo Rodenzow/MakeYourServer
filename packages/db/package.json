@@ -13,8 +13,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "generate": "drizzle-kit generate",
-    "migrate": "tsx src/migrate.ts",
-    "seed": "tsx src/seed.ts"
+    "migrate": "tsx src/migrate-cli.ts",
+    "seed": "tsx src/seed-cli.ts"
   },
   "dependencies": {
     "@mys/core": "workspace:*",

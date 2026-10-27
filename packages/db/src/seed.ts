@@ -1,8 +1,6 @@
 import { DEFAULT_QUOTAS, ServerSpecSchema } from "@mys/core";
 import { OFFICIAL_TEMPLATES, detectFeatures } from "@mys/core/templates";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import { closeDb, getDb } from "./client";
+import { getDb } from "./client";
 import { plans, templates } from "./schema";
 
 /**
@@ -47,17 +45,4 @@ export async function seed() {
       });
   }
   return { templates: OFFICIAL_TEMPLATES.length };
-}
-
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  seed()
-    .then(async (r) => {
-      console.log(`✅ Seed terminé (${r.templates} templates officiels).`);
-      await closeDb();
-    })
-    .catch(async (e) => {
-      console.error("❌ Échec du seed :", e);
-      await closeDb();
-      process.exit(1);
-    });
 }

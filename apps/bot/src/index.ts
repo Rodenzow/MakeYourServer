@@ -153,12 +153,15 @@ async function route(i: Interaction) {
 }
 
 const startedAt = Date.now();
+let startupError: string | null = null;
 
 async function main() {
   startHealthServer(() => ({
-    statut: client.isReady() ? "connecté" : "démarrage",
+    statut: client.isReady() ? "connecté" : startupError ? "erreur" : "démarrage",
+    ...(startupError ? { erreur: startupError } : {}),
     serveurs: client.isReady() ? client.guilds.cache.size : 0,
     depuis: Math.round((Date.now() - startedAt) / 1000),
+    memoireMo: Math.round(process.memoryUsage().rss / 1048576),
   }));
   await prepareEnvironment();
   bind();
@@ -184,7 +187,20 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 process.on("unhandledRejection", (e) => void logError("bot", "Promesse rejetée non gérée", { error: e }));
 
+/** Explique en français les causes de démarrage raté les plus courantes. */
+function explainStartupError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/invalid token|TokenInvalid/i.test(msg)) return "Jeton du bot invalide : régénérez-le (portail développeur → Bot) et mettez à jour DISCORD_BOT_TOKEN.";
+  if (/disallowed intents/i.test(msg)) return "Intention refusée par Discord : activez « Server Members Intent » (portail développeur → Bot) ou mettez BOT_MEMBER_EVENTS=false.";
+  if (/password authentication|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|getaddrinfo|Tenant or user not found/i.test(msg))
+    return `Base de données injoignable : vérifiez DATABASE_URL (${msg}).`;
+  return msg;
+}
+
 main().catch((e) => {
-  console.error("❌ Démarrage impossible :", e instanceof Error ? e.message : e);
-  process.exit(1);
+  startupError = explainStartupError(e);
+  console.error("❌ Démarrage impossible :", startupError);
+  // L’erreur reste lisible sur /sante quelques minutes, puis le processus s’arrête :
+  // l’hôte (cron Cloudflare, Docker restart…) relance une tentative propre.
+  setTimeout(() => process.exit(1), process.env.PORT ? 4 * 60_000 : 0);
 });

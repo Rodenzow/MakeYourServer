@@ -99,6 +99,10 @@ pnpm --filter @mys/bot sandbox    # worker qui exécute les installations sur le
 La page de connexion propose alors une connexion de test, et un « Serveur bac à sable » persistant (en base) apparaît. Le serveur simulé reproduit les contraintes importantes (permissions du bot, hiérarchie, limites, Communauté, nonce des messages). Il est toujours signalé comme simulation.
 
 ### Production
+
+**Cloudflare (recommandé, sans nom de domaine)** : suivez [DEPLOIEMENT-CLOUDFLARE.md](DEPLOIEMENT-CLOUDFLARE.md). Le site tourne sur Workers (OpenNext), le bot dans un Cloudflare Container, la base sur Supabase ; le workflow GitHub `.github/workflows/deploy-cloudflare.yml` applique les migrations et publie tout à chaque push sur `main`.
+
+**Serveur classique** :
 - Site : `pnpm build:web && pnpm start:web` (derrière un proxy HTTPS ; `APP_URL` en `https://…` active les cookies `Secure`).
 - Bot : `pnpm start:bot` comme service persistant (systemd, PM2, conteneur). Plusieurs instances du worker peuvent tourner : la file est verrouillée ligne par ligne.
 - Migrations à chaque déploiement : `pnpm db:migrate`.

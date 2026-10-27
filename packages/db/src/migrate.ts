@@ -1,23 +1,11 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { closeDb, getDb } from "./client";
+import { getDb } from "./client";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export async function runMigrations() {
-  await migrate(getDb(), { migrationsFolder: path.join(here, "..", "migrations") });
-}
-
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  runMigrations()
-    .then(async () => {
-      console.log("✅ Migrations appliquées.");
-      await closeDb();
-    })
-    .catch(async (e) => {
-      console.error("❌ Échec des migrations :", e);
-      await closeDb();
-      process.exit(1);
-    });
+  // MIGRATIONS_DIR : utilisé par l’image Docker du bot (code regroupé en un seul fichier).
+  await migrate(getDb(), { migrationsFolder: process.env.MIGRATIONS_DIR ?? path.join(here, "..", "migrations") });
 }

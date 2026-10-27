@@ -32,6 +32,8 @@ export class BotContainer extends Container<Env> {
       NODE_ENV: "production",
       PORT: "8080",
       RUN_MIGRATIONS: "true",
+      // Le site partage la même base : un petit pool laisse des connexions au pooler.
+      DATABASE_POOL_SIZE: "5",
       REGISTER_COMMANDS: "true",
       DATABASE_URL: env.DATABASE_URL,
       DISCORD_BOT_TOKEN: env.DISCORD_BOT_TOKEN,

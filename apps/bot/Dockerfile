@@ -1,16 +1,24 @@
-# Image du bot Make Your Server (contexte de construction : racine du dépôt).
-# Utilisée par Cloudflare Containers (apps/bot-host) ou n’importe quel hébergeur Docker.
-FROM node:22-slim AS build
+# Image du bot Make Your Server.
+# Contexte de construction : la racine du dépôt (voir apps/bot-host/wrangler.jsonc).
+# Le code est regroupé en un seul fichier (esbuild) pour une image légère.
+
+ARG NODE_IMAGE=node:22-slim
+
+FROM ${NODE_IMAGE} AS build
 RUN corepack enable
 WORKDIR /repo
 COPY . .
 RUN pnpm install --frozen-lockfile --filter "@mys/bot..."
-RUN pnpm --filter @mys/bot deploy --legacy --prod /app
+RUN pnpm --filter @mys/bot build
 
-FROM node:22-slim
+FROM ${NODE_IMAGE}
 WORKDIR /app
-COPY --from=build /app /app
-ENV NODE_ENV=production PORT=8080
+COPY --from=build /repo/apps/bot/dist/bot.mjs /app/bot.mjs
+COPY --from=build /repo/packages/db/migrations /app/migrations
+ENV NODE_ENV=production \
+    PORT=8080 \
+    MIGRATIONS_DIR=/app/migrations \
+    NODE_OPTIONS=--max-old-space-size=160
 EXPOSE 8080
 USER node
-CMD ["node", "--import", "tsx", "src/index.ts"]
+CMD ["node", "bot.mjs"]
