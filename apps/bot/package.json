@@ -7,7 +7,8 @@
     "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
     "start": "tsx --env-file-if-exists=../../.env src/index.ts",
     "register": "tsx --env-file-if-exists=../../.env src/register.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "sandbox": "tsx --env-file-if-exists=../../.env src/sandbox-worker.ts"
   },
   "dependencies": {
     "@mys/core": "workspace:*",

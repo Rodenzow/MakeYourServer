@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/onest";
+@import "@fontsource-variable/jetbrains-mono";
+
+/*
+ * Identité Make Your Server
+ * Palette issue du logo : bleu clair #B8D7FF, bleu principal #83A8F3,
+ * bleu pervenche #A7BDFF, bleu nuit #07142D.
+ * Motif : blocs extrudés (ombres décalées nettes) et trame de plan.
+ */
+@theme {
+  --color-night: #07142d;
+  --color-night-2: #0d1f43;
+  --color-ink: #162f5b;
+  --color-blue: #83a8f3;
+  --color-blue-strong: #4f7fe0;
+  --color-peri: #a7bdff;
+  --color-light: #b8d7ff;
+  --color-paper: #f5f8fe;
+  --color-mist: #e8effc;
+  --color-line: #cbd9f3;
+  --color-muted: #52648a;
+  --color-success: #23875a;
+  --color-success-soft: #dff3e9;
+  --color-warning: #a8700a;
+  --color-warning-soft: #fbefd5;
+  --color-danger: #c73a33;
+  --color-danger-soft: #fbe3e1;
+
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Onest Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --shadow-block: 4px 4px 0 0 var(--color-night);
+  --shadow-block-sm: 2px 2px 0 0 var(--color-night);
+  --shadow-block-blue: 4px 4px 0 0 var(--color-blue);
+
+  --radius-block: 14px;
+
+  --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-night);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01";
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--color-peri);
+    color: var(--color-night);
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-blue-strong);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  /* Trame de plan : lignes fines évoquant un plan d’architecte. */
+  .blueprint {
+    background-image:
+      linear-gradient(to right, rgb(131 168 243 / 0.14) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(131 168 243 / 0.14) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .blueprint-dark {
+    background-color: var(--color-night);
+    background-image:
+      linear-gradient(to right, rgb(167 189 255 / 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(167 189 255 / 0.07) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .brick {
+    border: 2px solid var(--color-night);
+    border-radius: var(--radius-block);
+    background: white;
+    box-shadow: var(--shadow-block);
+  }
+  .panel {
+    border: 1.5px solid var(--color-line);
+    border-radius: var(--radius-block);
+    background: white;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  .field {
+    width: 100%;
+    border: 1.5px solid var(--color-line);
+    border-radius: 10px;
+    background: white;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.95rem;
+    transition: border-color 0.15s;
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--color-blue-strong);
+    box-shadow: 0 0 0 3px rgb(131 168 243 / 0.35);
+  }
+  .label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: 0.3rem;
+  }
+}
+
+/* Respect de la préférence « réduire les animations » pour tout le site. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
