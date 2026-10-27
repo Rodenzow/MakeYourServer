@@ -14,6 +14,7 @@
     "@mys/core": "workspace:*",
     "@mys/db": "workspace:*",
     "@mys/engine": "workspace:*",
-    "discord.js": "^14.27.0"
+    "discord.js": "^14.27.0",
+    "tsx": "^4.23.15"
   }
 }

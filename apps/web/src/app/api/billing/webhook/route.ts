@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   const raw = await req.text();
   let event;
   try {
-    event = getStripe().webhooks.constructEvent(raw, signature, env.stripeWebhookSecret);
+    // Version asynchrone : seule compatible avec Cloudflare Workers (Web Crypto), fonctionne aussi sous Node.
+    event = await getStripe().webhooks.constructEventAsync(raw, signature, env.stripeWebhookSecret);
   } catch {
     return NextResponse.json({ error: "Signature invalide." }, { status: 400 });
   }

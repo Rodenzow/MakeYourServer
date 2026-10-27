@@ -16,7 +16,7 @@ export const stripeEnabled = () => !!env.stripeSecretKey;
 
 export function getStripe(): Stripe {
   if (!env.stripeSecretKey) throw new HttpError(503, "Le paiement par carte n’est pas encore configuré sur cette instance (STRIPE_SECRET_KEY).", "billing_disabled");
-  client ??= new Stripe(env.stripeSecretKey, { maxNetworkRetries: 2, timeout: 20_000 });
+  client ??= new Stripe(env.stripeSecretKey, { maxNetworkRetries: 2, timeout: 20_000, httpClient: Stripe.createFetchHttpClient() });
   return client;
 }
 

@@ -12,8 +12,33 @@ export function getDatabaseUrl(): string {
   return url;
 }
 
+/**
+ * Sur Cloudflare Workers, une connexion ne peut pas être partagée entre deux requêtes :
+ * on crée un client par requête, rattaché au contexte de la requête (exposé par OpenNext
+ * sous ce symbole). Hyperdrive est utilisé s’il est configuré (pool de connexions géré).
+ */
+const CLOUDFLARE_CONTEXT = Symbol.for("__cloudflare-context__");
+const perRequest = new WeakMap<object, Database>();
+
+interface CloudflareRequestContext {
+  env?: { HYPERDRIVE?: { connectionString: string }; DATABASE_URL?: string };
+}
+
+function cloudflareDb(cf: CloudflareRequestContext): Database {
+  let db = perRequest.get(cf);
+  if (!db) {
+    const url = cf.env?.HYPERDRIVE?.connectionString ?? cf.env?.DATABASE_URL ?? getDatabaseUrl();
+    const sql = postgres(url, { max: 1, fetch_types: false, onnotice: () => {} });
+    db = drizzle(sql, { schema });
+    perRequest.set(cf, db);
+  }
+  return db;
+}
+
 /** Connexion partagée (réutilisée entre rechargements à chaud en développement). */
 export function getDb(): Database {
+  const cf = (globalThis as Record<symbol, CloudflareRequestContext | undefined>)[CLOUDFLARE_CONTEXT];
+  if (cf) return cloudflareDb(cf);
   if (!globalForDb.__mysDb) {
     globalForDb.__mysSql = postgres(getDatabaseUrl(), {
       max: Number(process.env.DATABASE_POOL_SIZE ?? 10),

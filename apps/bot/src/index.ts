@@ -26,6 +26,7 @@ import {
 } from "./handlers/install";
 import { handlePanel } from "./handlers/panel";
 import { errorEmbed } from "./ui";
+import { prepareEnvironment, startHealthServer } from "./startup";
 
 function createClient(memberEvents: boolean) {
   const intents = [GatewayIntentBits.Guilds];
@@ -151,7 +152,15 @@ async function route(i: Interaction) {
   }
 }
 
+const startedAt = Date.now();
+
 async function main() {
+  startHealthServer(() => ({
+    statut: client.isReady() ? "connecté" : "démarrage",
+    serveurs: client.isReady() ? client.guilds.cache.size : 0,
+    depuis: Math.round((Date.now() - startedAt) / 1000),
+  }));
+  await prepareEnvironment();
   bind();
   try {
     await client.login(config.token);
@@ -175,4 +184,7 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 process.on("unhandledRejection", (e) => void logError("bot", "Promesse rejetée non gérée", { error: e }));
 
-await main();
+main().catch((e) => {
+  console.error("❌ Démarrage impossible :", e instanceof Error ? e.message : e);
+  process.exit(1);
+});

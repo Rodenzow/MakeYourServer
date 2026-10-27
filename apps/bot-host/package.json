@@ -1,0 +1,12 @@
+{
+  "name": "@mys/bot-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": { "@cloudflare/containers": "latest" },
+  "devDependencies": { "wrangler": "^4.154.0", "@cloudflare/workers-types": "latest" }
+}

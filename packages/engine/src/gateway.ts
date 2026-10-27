@@ -107,6 +107,7 @@ export function translateDiscordError(e: unknown): GatewayError {
   let detail = "";
   if (code === 50035 && err.rawError?.errors) detail = ` Détail : ${summarizeFormErrors(err.rawError.errors)}`;
   const retriable = status === 0 || status >= 500 || status === 429;
+  if (status === 401) return new GatewayError("Le jeton du bot est invalide ou a été régénéré : mettez à jour DISCORD_BOT_TOKEN.", code, status, false);
   const message = known
     ? `${known}${detail}`
     : retriable

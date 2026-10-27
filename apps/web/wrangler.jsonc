@@ -1,0 +1,22 @@
+// Site Make Your Server sur Cloudflare Workers (OpenNext).
+// Sans nom de domaine, il est servi sur https://<name>.<votre-sous-domaine>.workers.dev
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "make-your-server",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "make-your-server" }],
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  // Variables non secrètes. Les secrets (jetons, clés) s’ajoutent avec `wrangler secret put`
+  // ou automatiquement par le workflow GitHub (voir DEPLOIEMENT-CLOUDFLARE.md).
+  "vars": {
+    "AI_PROVIDER": "anthropic",
+    "BOT_MEMBER_EVENTS": "true"
+  }
+  // Hyperdrive (recommandé) : décommentez et remplacez l’identifiant obtenu avec
+  //   npx wrangler hyperdrive create mys-db --connection-string="postgres://…"
+  // ,"hyperdrive": [{ "binding": "HYPERDRIVE", "id": "VOTRE_ID_HYPERDRIVE" }]
+}
