@@ -18,7 +18,9 @@
     "bot:register": "pnpm --filter @mys/bot register",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "bash scripts/e2e.sh",
+    "test:discord": "tsx --env-file-if-exists=.env scripts/test-discord.ts"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

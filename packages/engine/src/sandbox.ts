@@ -1,7 +1,7 @@
 import { ALL_PERMISSIONS, type GuildState } from "@mys/core";
 import { appSettings, eq, getDb } from "@mys/db";
 import { FakeGateway } from "./fake-gateway";
-import type { GuildGateway } from "./gateway";
+import { GatewayError, type GuildGateway } from "./gateway";
 
 /**
  * Serveur Discord simulé et persistant (DISCORD_SANDBOX=true), partagé entre le
@@ -45,6 +45,10 @@ export function createSandboxGateway(actorDiscordId?: string): GuildGateway {
       if (prop === "simulated") return true;
       if (prop === "then") return undefined;
       return async (...args: unknown[]) => {
+        // Seul le serveur simulé existe : tout autre identifiant se comporte comme un serveur sans le bot.
+        if (["fetchState", "fetchGuild", "getMember"].includes(prop) && args[0] !== SANDBOX_GUILD_ID) {
+          throw new GatewayError("Serveur introuvable ou bot retiré du serveur.", 10004, 404, false);
+        }
         const gw = await load(actorDiscordId);
         const fn = (gw as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>)[prop];
         if (typeof fn !== "function") throw new Error(`Méthode inconnue : ${prop}`);
