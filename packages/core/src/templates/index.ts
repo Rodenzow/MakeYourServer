@@ -1,13 +1,20 @@
 import { ServerSpecSchema, type ServerSpec } from "../schema";
 import { allChannels, specStats } from "../spec-utils";
+import { association } from "./association";
 import { communaute } from "./communaute";
+import { etudes } from "./etudes";
+import { professionnel } from "./professionnel";
+import { roleplay } from "./roleplay";
+import { createur } from "./createur";
+import { gaming } from "./gaming";
+import { musique } from "./musique";
 import type { TemplateDefinition } from "./helpers";
 
 export type { TemplateDefinition } from "./helpers";
 export { BRAND } from "./helpers";
 
 /** Templates officiels livrés avec la plateforme (insérés en base par le seed). */
-export const OFFICIAL_TEMPLATES: TemplateDefinition[] = [communaute];
+export const OFFICIAL_TEMPLATES: TemplateDefinition[] = [communaute, association, etudes, roleplay, professionnel, gaming, musique, createur];
 
 export const FEATURE_TAGS = {
   onboarding: "Onboarding Discord",

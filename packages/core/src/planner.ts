@@ -68,7 +68,9 @@ export type OpKind =
   | "automod.create"
   | "automod.update"
   | "onboarding.put"
-  | "welcome.put";
+  | "welcome.put"
+  | "bot.features"
+  | "message.republish";
 
 export type OpImpact = "create" | "update" | "existing" | "archive" | "delete" | "none";
 
@@ -159,6 +161,8 @@ const PHASE = {
   messages: 11,
   automod: 12,
   onboarding: 13,
+  botFeatures: 14,
+  republish: 15,
 } as const;
 
 const lower = (s: string) => s.trim().toLocaleLowerCase("fr");
@@ -640,6 +644,21 @@ export function buildPlan(input: PlanInput): Plan {
         optional: true,
       });
     } else warn("welcome-skipped", "L’écran d’accueil nécessite la Communauté : il sera ignoré.");
+  }
+
+  /* -------------------- Fonctionnalités assurées par le bot -------------------- */
+  const hasBotFeatures =
+    Object.values(spec.features).some((f) => f && (f as { enabled?: boolean }).enabled !== false) ||
+    spec.messages.some((m) => m.buttons.some((b) => b.action !== "link"));
+  if (hasBotFeatures) {
+    ops.push({
+      key: "bot.features",
+      kind: "bot.features",
+      phase: PHASE.botFeatures,
+      label: "Activer les fonctionnalités du bot (boutons, bienvenue, logs, tickets, suggestions)",
+      impact: "update",
+      destructive: false,
+    });
   }
 
   /* -------------------- Étapes manuelles -------------------- */
