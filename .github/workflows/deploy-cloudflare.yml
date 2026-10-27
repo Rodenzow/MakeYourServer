@@ -117,12 +117,18 @@ jobs:
           HYPERDRIVE_ID: ${{ steps.hyperdrive.outputs.hyperdrive_id }}
         run: node scripts/ci/enable-hyperdrive.mjs
 
+      # OpenNext démarre une émulation locale des liaisons, qui exige une base « locale »
+      # pour Hyperdrive. Valeur factice : jamais utilisée en production.
       - name: Construire (OpenNext)
         working-directory: apps/web
+        env:
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgres://local:local@127.0.0.1:5432/local
         run: pnpm exec opennextjs-cloudflare build
 
       - name: Publier sur Cloudflare Workers
         working-directory: apps/web
+        env:
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgres://local:local@127.0.0.1:5432/local
         run: pnpm exec opennextjs-cloudflare deploy
 
       - name: Envoyer les secrets du site
