@@ -9,12 +9,13 @@
   "containers": [
     {
       "class_name": "BotContainer",
-      // Image construite depuis la racine du dépôt (monorepo)
-      "image": "../bot/Dockerfile",
-      "image_build_context": "../..",
-      // lite = 1/16 vCPU, 256 Mio. Passez à "basic" (1 Gio) si le bot manque de mémoire.
-      "instance_type": "lite",
-      "max_instances": 1
+      // Conteneur géré par le Durable Object : l’image et le type d’instance (lite)
+      // sont choisis au démarrage dans src/index.ts.
+      "scheduling_policy": "durable_object",
+      "images": {
+        // Image construite depuis la racine du dépôt (monorepo)
+        "bot": { "dockerfile": "../bot/Dockerfile", "build_context": "../.." }
+      }
     }
   ],
   "durable_objects": { "bindings": [{ "name": "BOT", "class_name": "BotContainer" }] },

@@ -20,6 +20,13 @@ interface Env {
   DISCORD_DEV_GUILD_ID?: string;
 }
 
+type NativeContainer = NonNullable<DurableObjectState["container"]>;
+
+/** Nom de l’image dans wrangler.jsonc (containers[].images). */
+const BOT_IMAGE = "bot";
+/** lite = 1/16 vCPU, 256 Mio. Si le bot manque de mémoire : "standard-1" (1/2 vCPU, 4 Gio). */
+const BOT_INSTANCE = "lite";
+
 export class BotContainer extends Container<Env> {
   defaultPort = 8080;
   // Renouvelé toutes les 5 minutes par le cron : le conteneur ne s’arrête que si le cron cesse.
@@ -28,6 +35,20 @@ export class BotContainer extends Container<Env> {
 
   constructor(ctx: DurableObjectState<Record<string, never>>, env: Env) {
     super(ctx, env);
+    // Politique « durable_object » (imposée aux nouveaux comptes) : l’image et le type
+    // d’instance se choisissent au démarrage. La bibliothèque ne les transmet pas encore,
+    // on les ajoute à chaque appel de start().
+    const native = ctx.container!;
+    (this as unknown as { container: NativeContainer }).container = new Proxy(native, {
+      get(target, prop) {
+        if (prop === "start") {
+          return (options: ContainerStartupOptions) =>
+            target.start({ ...options, image: target.images[BOT_IMAGE], instance: BOT_INSTANCE } as ContainerStartupOptions);
+        }
+        const value = Reflect.get(target, prop, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
     this.envVars = {
       NODE_ENV: "production",
       PORT: "8080",

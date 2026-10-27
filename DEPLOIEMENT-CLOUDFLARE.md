@@ -186,6 +186,7 @@ Le site utilise alors Hyperdrive ; le bot, qui garde sa propre connexion permane
 | --- | --- |
 | Le workflow s’arrête sur « Secrets GitHub manquants » | Le message liste les noms manquants : ajoutez-les (étape 5), noms exactement identiques. |
 | « Sous-domaine workers.dev introuvable » | Ouvrez une fois **Workers & Pages** dans Cloudflare pour choisir le sous-domaine (étape 1). |
+| « cannot create applications with the "default" scheduling policy » | Déjà pris en charge : le bot utilise la politique `durable_object` exigée par Cloudflare pour les nouveaux comptes. Mettez le code à jour. |
 | `Authentication error [code: 10000]` ou « Unauthorized » au déploiement du bot | Le jeton API n’a pas la permission **Containers · Edit** : modifiez-le (étape 2). Vérifiez aussi que l’offre **Workers Paid** est active. |
 | Erreur de taille « exceeds the size limit » pour le site | L’offre Workers Paid n’est pas active. |
 | Discord affiche « Invalid OAuth2 redirect_uri » | La redirection de l’étape 4 ne correspond pas exactement à l’adresse affichée dans le résumé du workflow. |
@@ -194,7 +195,7 @@ Le site utilise alors Hyperdrive ; le bot, qui garde sa propre connexion permane
 | `/sante` : « Base de données injoignable » | Vérifiez `DATABASE_URL` : *Session pooler*, port `5432`, mot de passe correct, `?sslmode=require`. |
 | `/sante` ne répond pas juste après un déploiement | Le premier démarrage d’un conteneur prend quelques minutes ; un relanceur automatique le redémarre toutes les 5 minutes s’il s’est arrêté. |
 | Les commandes `/mys` n’apparaissent pas | Les commandes globales mettent jusqu’à 1 h à se propager. Pour un essai immédiat, définissez `DISCORD_DEV_GUILD_ID`. |
-| Le bot redémarre souvent (beaucoup de serveurs) | Le champ `memoireMo` de `/sante` approche 256 : dans `apps/bot-host/wrangler.jsonc`, passez `instance_type` de `lite` à `basic` (1 Gio, ≈ 6 $/mois de plus). |
+| Le bot redémarre souvent (beaucoup de serveurs) | Le champ `memoireMo` de `/sante` approche 256 : dans `apps/bot-host/src/index.ts`, passez `BOT_INSTANCE` de `"lite"` à `"standard-1"` (4 Gio, plus cher : voir la grille tarifaire). |
 
 **Journaux en direct** : Cloudflare → **Workers & Pages** → `make-your-server` (site) ou `make-your-server-bot` (bot) → **Logs**.
 
