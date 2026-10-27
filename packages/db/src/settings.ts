@@ -24,8 +24,8 @@ export const SETTING_DEFAULTS = {
   ai: {
     enabled: true,
     model: process.env.AI_MODEL ?? "claude-sonnet-5-5",
-    inputMicrosPerMTok: 3_000_000,
-    outputMicrosPerMTok: 15_000_000,
+    inputMicrosPerMTok: 2_000_000,
+    outputMicrosPerMTok: 10_000_000,
     maxOutputTokens: 16000,
     monthlyBudgetMicros: 50_000_000,
   } satisfies AiSettings,
