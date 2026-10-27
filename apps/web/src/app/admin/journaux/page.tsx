@@ -21,7 +21,7 @@ export default async function LogsPage({ searchParams }: { searchParams: Promise
           ["erreurs", "Erreurs"],
           ["audit", "Actions (audit)"],
         ].map(([k, l]) => (
-          <Link key={k} href={`/admin/journaux?vue=${k}`} className={cx("rounded-lg border px-3 py-1.5 text-sm font-semibold", view === k ? "border-night bg-night text-white" : "border-line bg-white text-ink hover:border-night")}>
+          <Link key={k} href={`/admin/journaux?vue=${k}`} className={cx("rounded-lg border px-3 py-1.5 text-sm font-semibold", view === k ? "border-edge bg-accent text-on-accent" : "border-line bg-surface text-ink hover:border-edge")}>
             {l}
           </Link>
         ))}

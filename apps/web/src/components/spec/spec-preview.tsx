@@ -23,7 +23,7 @@ export function SpecPreview({ spec, height = 560 }: { spec: ServerSpec; height?:
   const access = asRole !== null && selected ? simulateAsRoles(spec, asRole === "everyone" ? [] : [asRole]).get(selected) : null;
 
   return (
-    <div className="overflow-hidden rounded-[18px] border-2 border-night bg-[#313338] shadow-[5px_5px_0_0_var(--color-night)]">
+    <div className="overflow-hidden rounded-[18px] border-2 border-edge bg-[#313338] shadow-[5px_5px_0_0_rgb(131_168_243/0.3)]">
       <div className="flex flex-wrap items-center gap-2 border-b border-black/30 bg-night px-3 py-2">
         <label className="text-xs font-semibold text-light/70" htmlFor="voir-comme">
           Voir comme
@@ -90,13 +90,13 @@ export function RolesOverview({ spec }: { spec: ServerSpec }) {
   return (
     <div className="space-y-3">
       <RoleList roles={spec.roles.map((r) => ({ key: r.id, name: r.name, color: r.color }))} />
-      <ul className="divide-y divide-line rounded-xl border border-line bg-white text-sm">
+      <ul className="divide-y divide-line rounded-xl border border-line bg-surface text-sm">
         {spec.roles.map((r) => (
           <li key={r.id} className="flex flex-col gap-0.5 px-4 py-2.5 sm:flex-row sm:items-baseline sm:gap-3">
             <span className="w-48 shrink-0 font-semibold">{r.name}</span>
             <span className="text-muted">
               {r.description ?? "—"}
-              {r.selfAssignable && <span className="ml-2 rounded bg-light/60 px-1.5 text-[11px] font-semibold text-night">au choix des membres</span>}
+              {r.selfAssignable && <span className="ml-2 rounded bg-light/60 px-1.5 text-[11px] font-semibold text-on-accent">au choix des membres</span>}
             </span>
           </li>
         ))}

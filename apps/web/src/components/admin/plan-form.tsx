@@ -74,7 +74,7 @@ export function PlanForm({ plan, quotaLabels }: { plan: PlanFormValues; quotaLab
           <input id={`${v.key}-sku`} className="field font-mono" value={v.discordSkuId ?? ""} onChange={(e) => set("discordSkuId", e.target.value.trim() || null)} placeholder="Identifiant numérique du SKU" />
         </div>
         <label className="flex items-center gap-2 text-sm font-semibold md:col-span-2">
-          <input type="checkbox" className="size-4 accent-[var(--color-night)]" checked={v.purchasable} onChange={(e) => set("purchasable", e.target.checked)} />
+          <input type="checkbox" className="size-4 accent-[var(--color-blue)]" checked={v.purchasable} onChange={(e) => set("purchasable", e.target.checked)} />
           Proposée à l’achat (nécessite un prix Stripe ou un SKU Discord)
         </label>
       </div>
@@ -87,7 +87,7 @@ export function PlanForm({ plan, quotaLabels }: { plan: PlanFormValues; quotaLab
             const id = `${v.key}-q-${k}`;
             return typeof value === "boolean" ? (
               <label key={k} htmlFor={id} className="flex items-center gap-2 rounded-lg border border-line bg-paper px-3 py-2 text-sm">
-                <input id={id} type="checkbox" className="size-4 accent-[var(--color-night)]" checked={value} onChange={(e) => setQuota(k, e.target.checked)} />
+                <input id={id} type="checkbox" className="size-4 accent-[var(--color-blue)]" checked={value} onChange={(e) => setQuota(k, e.target.checked)} />
                 {label}
               </label>
             ) : (

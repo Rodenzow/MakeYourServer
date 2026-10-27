@@ -34,7 +34,7 @@ export default async function AdminInstallation({ params }: { params: Promise<{ 
           Serveur <span className="font-mono">{i.guildId}</span> · par{" "}
           <Link href={`/admin/utilisateurs/${i.userId}`} className="underline">{owner?.username ?? i.userId}</Link> · mode {MODE_LABELS[i.plan.mode] ?? i.plan.mode} · via {i.origin === "discord" ? "Discord" : "le site"}
         </p>
-        <Link href="/admin/installations" className="mt-1 inline-block text-sm text-muted hover:text-night">← Toutes les installations</Link>
+        <Link href="/admin/installations" className="mt-1 inline-block text-sm text-muted hover:text-fg">← Toutes les installations</Link>
       </PageHeader>
 
       {i.error && <Notice tone={i.status === "partial" ? "warning" : "danger"} className="mb-4">{i.error}</Notice>}

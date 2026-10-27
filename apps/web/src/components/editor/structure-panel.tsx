@@ -219,7 +219,7 @@ export function RolesPanel({ editor, selection, onSelect }: { editor: Editor; se
           {spec.roles.map((r, i) => {
             const sel = selection?.kind === "role" && selection.id === r.id;
             return (
-              <motion.li key={r.id} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={cx("group flex items-center gap-2 rounded-lg border px-2 py-1.5", sel ? "border-night bg-white" : "border-transparent hover:bg-white")}>
+              <motion.li key={r.id} layout="position" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={cx("group flex items-center gap-2 rounded-lg border px-2 py-1.5", sel ? "border-edge bg-surface" : "border-transparent hover:bg-surface")}>
                 <span className="w-5 font-mono text-[10px] text-muted">{i + 1}</span>
                 <span className="size-3 shrink-0 rounded-full border border-black/10" style={{ background: r.color ? `#${r.color.toString(16).padStart(6, "0")}` : "#99aab5" }} />
                 <button type="button" className="min-w-0 flex-1 truncate text-left text-sm font-medium" onClick={() => onSelect({ kind: "role", id: r.id })}>
@@ -227,10 +227,10 @@ export function RolesPanel({ editor, selection, onSelect }: { editor: Editor; se
                 </button>
                 {r.selfAssignable && <span className="rounded bg-light/70 px-1 text-[10px] font-semibold">libre</span>}
                 <span className="flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100">
-                  <button type="button" onClick={() => move(r.id, -1)} className="rounded p-0.5 text-muted hover:text-night" aria-label={`Monter ${r.name}`}>
+                  <button type="button" onClick={() => move(r.id, -1)} className="rounded p-0.5 text-muted hover:text-fg" aria-label={`Monter ${r.name}`}>
                     <IconArrowUp size={13} />
                   </button>
-                  <button type="button" onClick={() => move(r.id, 1)} className="rounded p-0.5 text-muted hover:text-night" aria-label={`Descendre ${r.name}`}>
+                  <button type="button" onClick={() => move(r.id, 1)} className="rounded p-0.5 text-muted hover:text-fg" aria-label={`Descendre ${r.name}`}>
                     <IconArrowDown size={13} />
                   </button>
                 </span>
@@ -239,13 +239,13 @@ export function RolesPanel({ editor, selection, onSelect }: { editor: Editor; se
           })}
         </AnimatePresence>
         <li>
-          <button type="button" onClick={() => onSelect({ kind: "panel", id: "everyone" })} className={cx("flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm", selection?.kind === "panel" && selection.id === "everyone" ? "border-night bg-white" : "border-transparent hover:bg-white")}>
+          <button type="button" onClick={() => onSelect({ kind: "panel", id: "everyone" })} className={cx("flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm", selection?.kind === "panel" && selection.id === "everyone" ? "border-edge bg-surface" : "border-transparent hover:bg-surface")}>
             <span className="w-5" />
             <span className="size-3 rounded-full bg-[#99aab5]" /> @everyone <span className="text-xs text-muted">(tous les membres)</span>
           </button>
         </li>
       </ul>
-      <button type="button" onClick={add} className="w-full rounded-lg border-2 border-dashed border-line py-2 text-sm font-semibold text-ink hover:border-night">
+      <button type="button" onClick={add} className="w-full rounded-lg border-2 border-dashed border-line py-2 text-sm font-semibold text-ink hover:border-edge">
         + Ajouter un rôle
       </button>
     </div>

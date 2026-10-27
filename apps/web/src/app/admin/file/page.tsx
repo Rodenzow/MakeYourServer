@@ -55,7 +55,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
       <h2 className="mt-10 mb-3 text-xl font-bold">Tâches récentes</h2>
       <nav className="mb-3 flex flex-wrap gap-2" aria-label="Filtrer par statut">
         {[undefined, ...STATUS].map((s) => (
-          <Link key={s ?? "all"} href={s ? `/admin/file?statut=${s}` : "/admin/file"} className={cx("rounded-lg border px-3 py-1.5 text-sm font-semibold", sp.statut === s || (!sp.statut && !s) ? "border-night bg-night text-white" : "border-line bg-white text-ink hover:border-night")}>
+          <Link key={s ?? "all"} href={s ? `/admin/file?statut=${s}` : "/admin/file"} className={cx("rounded-lg border px-3 py-1.5 text-sm font-semibold", sp.statut === s || (!sp.statut && !s) ? "border-edge bg-accent text-on-accent" : "border-line bg-surface text-ink hover:border-edge")}>
             {s ? LABEL[s] : "Toutes"}
           </Link>
         ))}

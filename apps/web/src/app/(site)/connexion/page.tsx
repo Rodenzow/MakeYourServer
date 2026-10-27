@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <div className="mx-auto grid max-w-4xl items-center gap-10 py-6 md:grid-cols-[1fr_1fr]">
       <div className="brick blueprint flex aspect-square items-center justify-center p-10">
-        <Image src="/brand/logo-512.png" alt="Logo Make Your Server" width={260} height={260} className="rounded-[28px] border-2 border-night shadow-[6px_6px_0_0_var(--color-night)]" priority />
+        <Image src="/brand/logo-512.png" alt="Logo Make Your Server" width={260} height={260} className="rounded-[28px] border-2 border-edge shadow-[6px_6px_0_0_rgb(131_168_243/0.3)]" priority />
       </div>
       <div>
         <p className="eyebrow">Espace personnel</p>

@@ -9,12 +9,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
       <SiteHeader />
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[210px_1fr] lg:py-10">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)] lg:py-10">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <p className="mb-3 hidden truncate px-3 text-xs text-muted lg:block">
-            Connecté : <strong className="text-night">{user.globalName ?? user.username}</strong>
+            Connecté : <strong className="text-fg">{user.globalName ?? user.username}</strong>
             <br />
-            Offre : <strong className="text-night">{ent.planName}</strong>
+            Offre : <strong className="text-fg">{ent.planName}</strong>
           </p>
           <AppNav
             items={[
@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             ]}
           />
           <form action="/api/auth/logout" method="post" className="mt-4 hidden lg:block">
-            <button className="px-3 text-sm text-muted hover:text-night">Se déconnecter</button>
+            <button className="px-3 text-sm text-muted hover:text-fg">Se déconnecter</button>
           </form>
         </aside>
         <main id="contenu" className="min-w-0">

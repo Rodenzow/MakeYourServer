@@ -22,7 +22,7 @@ export interface TreeCategory {
 
 const STATUS_LABEL: Partial<Record<TreeStatus, [string, string]>> = {
   new: ["nouveau", "bg-success-soft text-success"],
-  updated: ["modifié", "bg-light text-night"],
+  updated: ["modifié", "bg-light text-on-accent"],
   reused: ["réutilisé", "bg-mist text-ink"],
   archived: ["archivé", "bg-warning-soft text-warning"],
   deleted: ["supprimé", "bg-danger-soft text-danger"],
@@ -150,7 +150,7 @@ export function RoleList({ roles, className }: { roles: Array<{ key: string; nam
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: r.status === "deleted" ? 0.45 : 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-xs font-medium"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium"
           >
             <span className="size-2.5 rounded-full" style={{ background: colorHex(r.color) }} />
             <span className={r.status === "deleted" ? "line-through" : undefined}>{r.name}</span>

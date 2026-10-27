@@ -12,6 +12,7 @@ import { CategoryInspector, ChannelInspector, EveryoneInspector, MessageInspecto
 import { AutomodPanel, FeaturesPanel, SettingsPanel, WelcomePanel } from "./settings-panels";
 import { RolesPanel, StructurePanel } from "./structure-panel";
 import { useEditor, type Selection } from "./state";
+import { QuickGuide } from "./quick-guide";
 
 const PANELS = [
   { id: "settings", label: "Réglages" },
@@ -51,9 +52,9 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
   return (
     <motion.div initial={fromTemplate && !reduce ? { opacity: 0, scale: 0.985 } : false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: [0.2, 0.9, 0.25, 1] }} className="flex min-h-[calc(100dvh-4rem)] flex-col">
       {/* Barre d’outils */}
-      <div className="sticky top-16 z-20 border-b-2 border-night bg-paper/95 backdrop-blur">
+      <div className="glass sticky top-16 z-20 border-b border-line">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-4 py-2.5">
-          <Link href="/projets" className="text-sm font-semibold text-muted hover:text-night">
+          <Link href="/projets" className="text-sm font-semibold text-muted hover:text-fg">
             ← Projets
           </Link>
           <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold">{spec.meta.name}</h1>
@@ -69,9 +70,9 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
           <button type="button" onClick={() => setIssuesOpen((v) => !v)} className={cx("rounded-lg px-2.5 py-1.5 text-sm font-semibold", validation.errors.length ? "bg-danger-soft text-danger" : validation.warnings.length ? "bg-warning-soft text-warning" : "bg-success-soft text-success")} aria-expanded={issuesOpen}>
             {validation.errors.length ? `${validation.errors.length} erreur(s)` : validation.warnings.length ? `${validation.warnings.length} remarque(s)` : "Projet valide"}
           </button>
-          <div className="flex rounded-lg border-2 border-night bg-white p-0.5 lg:hidden">
+          <div className="flex rounded-lg border-2 border-edge bg-surface p-0.5 lg:hidden">
             {(["edit", "preview"] as const).map((v) => (
-              <button key={v} type="button" onClick={() => setView(v)} className={cx("rounded-md px-2.5 py-1 text-xs font-semibold", view === v ? "bg-night text-white" : "text-ink")}>
+              <button key={v} type="button" onClick={() => setView(v)} className={cx("rounded-md px-2.5 py-1 text-xs font-semibold", view === v ? "bg-accent text-on-accent" : "text-ink")}>
                 {v === "edit" ? "Édition" : "Aperçu"}
               </button>
             ))}
@@ -94,7 +95,7 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
         {editor.status === "error" && <div className="bg-warning-soft px-4 py-2 text-center text-sm text-warning">Enregistrement impossible : {editor.error} Vos modifications sont conservées dans cette page ; nouvelle tentative à la prochaine modification.</div>}
         <AnimatePresence>
           {issuesOpen && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-line bg-white">
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-line bg-surface">
               <ul className="mx-auto max-h-64 max-w-[1600px] space-y-1 overflow-y-auto px-4 py-3 text-sm">
                 {validation.issues.length === 0 && <li className="text-success">Aucun problème détecté : le projet est prêt à être installé.</li>}
                 {validation.issues.map((i, k) => (
@@ -114,10 +115,10 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
       <div className="mx-auto grid w-full max-w-[1600px] flex-1 gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* Colonne gauche : arborescence */}
         <aside className={cx("space-y-3", view === "preview" && "hidden lg:block")}>
-          <div className="flex rounded-lg border-2 border-night bg-white p-0.5">
+          <div className="flex rounded-lg border-2 border-edge bg-surface p-0.5">
             {(["structure", "roles"] as const).map((t) => (
-              <button key={t} type="button" onClick={() => setLeft(t)} className={cx("relative flex-1 rounded-md py-1.5 text-sm font-semibold", left === t ? "text-white" : "text-ink")}>
-                {left === t && <motion.span layoutId="left-tab" className="absolute inset-0 rounded-md bg-night" transition={{ type: "spring", bounce: 0.12, duration: 0.3 }} />}
+              <button key={t} type="button" onClick={() => setLeft(t)} className={cx("relative flex-1 rounded-md py-1.5 text-sm font-semibold", left === t ? "text-on-accent" : "text-ink hover:text-fg")}>
+                {left === t && <motion.span layoutId="left-tab" className="absolute inset-0 rounded-md bg-accent" transition={{ type: "spring", bounce: 0.12, duration: 0.3 }} />}
                 <span className="relative">{t === "structure" ? `Salons (${stats.channels})` : `Rôles (${stats.roles})`}</span>
               </button>
             ))}
@@ -145,7 +146,7 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
           )}
           <nav className="grid grid-cols-2 gap-1.5" aria-label="Réglages du projet">
             {PANELS.map((p) => (
-              <button key={p.id} type="button" onClick={() => setSelection({ kind: "panel", id: p.id })} className={cx("rounded-lg border-2 px-2 py-1.5 text-sm font-semibold", selection?.kind === "panel" && selection.id === p.id ? "border-night bg-night text-white" : "border-line bg-white hover:border-night")}>
+              <button key={p.id} type="button" onClick={() => setSelection({ kind: "panel", id: p.id })} className={cx("rounded-lg border-2 px-2 py-1.5 text-sm font-semibold", selection?.kind === "panel" && selection.id === p.id ? "border-edge bg-accent text-on-accent" : "border-line bg-surface hover:border-edge")}>
                 {p.label}
               </button>
             ))}
@@ -178,13 +179,15 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
         </section>
       </div>
 
+      <QuickGuide />
+
       <AnimatePresence>
         {aiOpen && (
-          <motion.div className="fixed inset-0 z-50 flex justify-end bg-night/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAiOpen(false)}>
+          <motion.div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAiOpen(false)}>
             <motion.aside
               role="dialog"
               aria-label="Modifications par l’IA"
-              className="h-full w-full max-w-xl overflow-y-auto border-l-2 border-night bg-paper p-5"
+              className="h-full w-full max-w-xl overflow-y-auto border-l-2 border-edge bg-paper p-5"
               initial={reduce ? false : { x: 40 }}
               animate={{ x: 0 }}
               exit={reduce ? undefined : { x: 40 }}

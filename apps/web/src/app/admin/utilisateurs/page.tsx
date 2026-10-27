@@ -21,7 +21,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         {rows.map((u) => (
           <tr key={u.id} className="hover:bg-paper">
             <Td>
-              <Link href={`/admin/utilisateurs/${u.id}`} className="font-semibold text-night hover:underline">
+              <Link href={`/admin/utilisateurs/${u.id}`} className="font-semibold text-fg hover:underline">
                 {u.globalName ?? u.username}
               </Link>
               <div className="text-xs text-muted">@{u.username}</div>

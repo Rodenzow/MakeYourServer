@@ -16,7 +16,7 @@ const EMPTY_SPEC = {
 export default function NewTemplate() {
   return (
     <>
-      <PageHeader eyebrow="Templates" title="Nouveau template" actions={<Link href="/admin/templates" className="text-sm text-muted hover:text-night">← Retour</Link>}>
+      <PageHeader eyebrow="Templates" title="Nouveau template" actions={<Link href="/admin/templates" className="text-sm text-muted hover:text-fg">← Retour</Link>}>
         Le template est créé en brouillon. Sa publication est une action distincte, après validation.
       </PageHeader>
       <TemplateEditor

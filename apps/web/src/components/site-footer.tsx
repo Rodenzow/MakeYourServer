@@ -3,10 +3,10 @@ import { Logo } from "./logo";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24 border-t-2 border-night bg-night text-light/80">
+    <footer className="mt-28 border-t border-line bg-night/80 text-ink">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div>
-          <Logo dark />
+          <Logo />
           <p className="mt-4 max-w-sm text-sm">
             Préparez votre serveur Discord sur le site, laissez notre bot l’installer. Make Your Server n’est pas affilié à Discord Inc.
           </p>
@@ -22,11 +22,11 @@ export function SiteFooter() {
 function FooterCol({ title, links }: { title: string; links: Array<[string, string]> }) {
   return (
     <div>
-      <p className="eyebrow !text-light/50">{title}</p>
+      <p className="eyebrow">{title}</p>
       <ul className="mt-3 space-y-2 text-sm">
         {links.map(([href, label]) => (
           <li key={href}>
-            <Link href={href} className="hover:text-white">
+            <Link href={href} className="hover:text-fg">
               {label}
             </Link>
           </li>

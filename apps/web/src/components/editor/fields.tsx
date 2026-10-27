@@ -43,9 +43,9 @@ export function Toggle({ checked, onChange, label, hint }: { checked: boolean; o
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={cx("relative mt-0.5 h-5 w-9 shrink-0 rounded-full border-2 transition-colors", checked ? "border-night bg-night" : "border-line bg-mist")}
+        className={cx("relative mt-0.5 h-5 w-9 shrink-0 rounded-full border-2 transition-colors", checked ? "border-blue bg-blue" : "border-line bg-night")}
       >
-        <span className={cx("absolute top-0.5 size-3 rounded-full transition-all", checked ? "left-[18px] bg-light" : "left-0.5 bg-muted")} />
+        <span className={cx("absolute top-0.5 size-3 rounded-full transition-all", checked ? "left-[18px] bg-night" : "left-0.5 bg-muted")} />
       </button>
       <span className="text-sm">
         <span className="font-medium">{label}</span>
@@ -104,7 +104,7 @@ export function ColorInput({ value, onChange }: { value: number; onChange: (v: n
           onClick={() => onChange(c)}
           title={c === 0 ? "Sans couleur" : `#${c.toString(16).padStart(6, "0")}`}
           aria-label={c === 0 ? "Sans couleur" : `Couleur #${c.toString(16).padStart(6, "0")}`}
-          className={cx("size-7 rounded-md border-2 transition-transform hover:scale-110", value === c ? "border-night" : "border-transparent")}
+          className={cx("size-7 rounded-md border-2 transition-transform hover:scale-110", value === c ? "border-edge" : "border-transparent")}
           style={{ background: c === 0 ? "repeating-linear-gradient(45deg,#fff,#fff 4px,#e8effc 4px,#e8effc 8px)" : `#${c.toString(16).padStart(6, "0")}` }}
         />
       ))}

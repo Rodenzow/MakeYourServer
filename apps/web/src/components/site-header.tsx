@@ -1,53 +1,52 @@
-import Link from "next/link";
 import Image from "next/image";
 import { getCurrentUser } from "@/lib/session";
 import { Logo } from "./logo";
 import { ButtonLink } from "./ui";
 import { MobileNav } from "./mobile-nav";
+import { NavLinks } from "./nav-links";
+import { IconArrowRight } from "./icons";
 
 const NAV = [
   { href: "/templates", label: "Templates" },
-  { href: "/fonctionnement", label: "Fonctionnement" },
+  { href: "/fonctionnement", label: "Comment ça marche" },
   { href: "/abonnement", label: "Offres" },
 ];
 
-export async function SiteHeader({ dark = false }: { dark?: boolean }) {
+export async function SiteHeader() {
   const user = await getCurrentUser();
   const avatar = user?.avatar ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png?size=64` : null;
-  const linkCls = dark ? "text-light/80 hover:text-white" : "text-ink hover:text-night";
   return (
-    <header className={dark ? "relative z-20" : "sticky top-0 z-30 border-b border-line/70 bg-paper/90 backdrop-blur"}>
+    <header className="glass sticky top-0 z-40 border-b border-line/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-8">
-          <Logo dark={dark} />
-          <nav className="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Navigation principale">
-            {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className={linkCls}>
-                {n.label}
-              </Link>
-            ))}
-          </nav>
+          <Logo />
+          <NavLinks items={NAV} />
         </div>
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           {user ? (
             <>
               {user.isAdmin && (
-                <Link href="/admin" className={`text-sm font-medium ${linkCls}`}>
+                <ButtonLink href="/admin" variant="ghost" size="sm">
                   Administration
-                </Link>
+                </ButtonLink>
               )}
-              <ButtonLink href="/tableau-de-bord" variant={dark ? "light" : "secondary"} size="sm">
+              <ButtonLink href="/tableau-de-bord" variant="secondary" size="sm">
                 {avatar ? <Image src={avatar} alt="" width={20} height={20} className="rounded-full" /> : null}
                 Mon espace
               </ButtonLink>
             </>
           ) : (
-            <ButtonLink href="/connexion" variant={dark ? "light" : "primary"} size="sm">
-              Se connecter avec Discord
-            </ButtonLink>
+            <>
+              <ButtonLink href="/connexion" variant="ghost" size="sm">
+                Se connecter
+              </ButtonLink>
+              <ButtonLink href="/templates" size="sm">
+                Créer mon serveur <IconArrowRight size={15} />
+              </ButtonLink>
+            </>
           )}
         </div>
-        <MobileNav dark={dark} items={[...NAV, ...(user ? [{ href: "/tableau-de-bord", label: "Mon espace" }] : [{ href: "/connexion", label: "Se connecter" }]), ...(user?.isAdmin ? [{ href: "/admin", label: "Administration" }] : [])]} />
+        <MobileNav items={[...NAV, ...(user ? [{ href: "/tableau-de-bord", label: "Mon espace" }] : [{ href: "/connexion", label: "Se connecter" }]), ...(user?.isAdmin ? [{ href: "/admin", label: "Administration" }] : [])]} />
       </div>
     </header>
   );

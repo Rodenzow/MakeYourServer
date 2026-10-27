@@ -21,7 +21,7 @@ export default async function UserDetail({ params }: { params: Promise<{ id: str
   const manual = d.subscriptions.find((s) => s.provider === "manual" && s.status === "active");
   return (
     <>
-      <PageHeader eyebrow="Utilisateur" title={u.globalName ?? u.username} actions={<Link href="/admin/utilisateurs" className="text-sm text-muted hover:text-night">← Tous les utilisateurs</Link>}>
+      <PageHeader eyebrow="Utilisateur" title={u.globalName ?? u.username} actions={<Link href="/admin/utilisateurs" className="text-sm text-muted hover:text-fg">← Tous les utilisateurs</Link>}>
         <span className="font-mono text-xs">@{u.username} · {u.discordId}</span>
         {isAdminDiscordId(u.discordId) && <Badge tone="night" className="ml-2">Administrateur (configuration serveur)</Badge>}
       </PageHeader>

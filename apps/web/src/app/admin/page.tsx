@@ -42,7 +42,7 @@ export default async function AdminHome() {
       <h2 className="mt-10 mb-3 text-xl font-bold">Installations des 30 derniers jours</h2>
       <div className="flex flex-wrap gap-2">
         {Object.entries(INSTALL_STATUS_LABELS).map(([k, label]) => (
-          <Link key={k} href={`/admin/installations?status=${k}`} className="panel px-3 py-2 text-sm hover:border-night">
+          <Link key={k} href={`/admin/installations?status=${k}`} className="panel px-3 py-2 text-sm hover:border-edge">
             {label} : <strong>{s.installsByStatus[k] ?? 0}</strong>
           </Link>
         ))}

@@ -38,7 +38,7 @@ export default async function EditTemplate({ params }: { params: Promise<{ id: s
           {s.channels} salons · {s.roles} rôles · {s.messages} messages · {t.installCount} installation(s) · modifié le {formatDate(t.updatedAt)}
           {t.publishedAt ? ` · publié le ${formatDate(t.publishedAt, false)}` : ""}
         </p>
-        <Link href="/admin/templates" className="mt-1 inline-block text-sm text-muted hover:text-night">← Tous les templates</Link>
+        <Link href="/admin/templates" className="mt-1 inline-block text-sm text-muted hover:text-fg">← Tous les templates</Link>
       </PageHeader>
 
       {t.status === "pending_review" && (

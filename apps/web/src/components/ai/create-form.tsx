@@ -145,7 +145,7 @@ export function AiCreateForm({ simulated, disabledReason }: { simulated: boolean
               />
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {EXAMPLES.map((ex) => (
-                  <button key={ex} type="button" onClick={() => set("description", ex)} className="max-w-full truncate rounded-full border border-line bg-white px-2.5 py-1 text-left text-xs hover:border-night">
+                  <button key={ex} type="button" onClick={() => set("description", ex)} className="max-w-full truncate rounded-full border border-line bg-surface px-2.5 py-1 text-left text-xs hover:border-edge">
                     {ex.slice(0, 60)}…
                   </button>
                 ))}
@@ -203,11 +203,11 @@ export function AiCreateForm({ simulated, disabledReason }: { simulated: boolean
               <legend className="label">Réglages Discord</legend>
               <div className="flex flex-col gap-1.5 text-sm">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" className="accent-[var(--color-night)]" checked={form.community} onChange={(e) => set("community", e.target.checked)} />
+                  <input type="checkbox" className="accent-[var(--color-blue)]" checked={form.community} onChange={(e) => set("community", e.target.checked)} />
                   Activer la Communauté Discord (annonces, onboarding, écran d’accueil)
                 </label>
                 <label className={`flex items-center gap-2 ${form.community ? "" : "opacity-50"}`}>
-                  <input type="checkbox" className="accent-[var(--color-night)]" disabled={!form.community} checked={form.community && form.onboarding} onChange={(e) => set("onboarding", e.target.checked)} />
+                  <input type="checkbox" className="accent-[var(--color-blue)]" disabled={!form.community} checked={form.community && form.onboarding} onChange={(e) => set("onboarding", e.target.checked)} />
                   Parcours d’arrivée personnalisé (onboarding)
                 </label>
               </div>
@@ -219,7 +219,7 @@ export function AiCreateForm({ simulated, disabledReason }: { simulated: boolean
                   <label key={k} className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="accent-[var(--color-night)]"
+                      className="accent-[var(--color-blue)]"
                       checked={form.features.includes(k)}
                       onChange={(e) => set("features", e.target.checked ? [...form.features, k] : form.features.filter((f) => f !== k))}
                     />

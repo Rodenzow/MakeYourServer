@@ -133,7 +133,7 @@ export function TemplateEditor({
           <input id="t-pop" type="number" min={0} max={1000} className="field" value={v.popularity} onChange={(e) => set("popularity", Number(e.target.value))} />
         </Field>
         <label className="flex items-center gap-2 self-end pb-2 text-sm font-semibold">
-          <input type="checkbox" checked={v.official} onChange={(e) => set("official", e.target.checked)} className="size-4 accent-[var(--color-night)]" />
+          <input type="checkbox" checked={v.official} onChange={(e) => set("official", e.target.checked)} className="size-4 accent-[var(--color-blue)]" />
           Template officiel Make Your Server
         </label>
       </div>

@@ -22,7 +22,7 @@ export default async function AdminTemplates({ searchParams }: { searchParams: P
           <Link
             key={s ?? "all"}
             href={s ? `/admin/templates?statut=${s}` : "/admin/templates"}
-            className={cx("rounded-lg border px-3 py-1.5 text-sm font-semibold", statut === s || (!statut && !s) ? "border-night bg-night text-white" : "border-line bg-white text-ink hover:border-night")}
+            className={cx("rounded-lg border px-3 py-1.5 text-sm font-semibold", statut === s || (!statut && !s) ? "border-edge bg-accent text-on-accent" : "border-line bg-surface text-ink hover:border-edge")}
           >
             {s ? TEMPLATE_STATUS_LABELS[s] : "Tous"}
           </Link>

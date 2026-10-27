@@ -7,19 +7,20 @@ export function cx(...parts: Array<string | false | null | undefined>) {
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "light";
 const VARIANTS: Record<Variant, string> = {
+  // Bouton principal : bleu clair du logo, bloc extrudé qui s’enfonce au clic.
   primary:
-    "bg-night text-white border-2 border-night shadow-[3px_3px_0_0_var(--color-blue)] hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-blue)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
+    "bg-accent text-on-accent border border-light shadow-[3px_3px_0_0_rgb(131_168_243/0.45)] hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_0_rgb(131_168_243/0.55)] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
   secondary:
-    "bg-white text-night border-2 border-night shadow-[3px_3px_0_0_var(--color-night)] hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-night)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
-  light: "bg-light text-night border-2 border-light hover:bg-white",
-  ghost: "text-ink hover:bg-mist border-2 border-transparent",
-  danger: "bg-danger text-white border-2 border-danger hover:brightness-110",
+    "bg-surface text-fg border border-edge shadow-[3px_3px_0_0_rgb(131_168_243/0.18)] hover:-translate-x-px hover:-translate-y-px hover:border-blue hover:shadow-[5px_5px_0_0_rgb(131_168_243/0.3)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
+  light: "bg-accent text-on-accent border border-light hover:bg-white",
+  ghost: "text-ink hover:text-fg hover:bg-mist border border-transparent",
+  danger: "bg-danger/15 text-danger border border-danger/50 hover:bg-danger/25",
 };
 const SIZES = { sm: "h-8 px-3 text-sm gap-1.5", md: "h-10 px-4 text-[0.95rem] gap-2", lg: "h-12 px-6 text-base gap-2.5" };
 
 export function buttonClass(variant: Variant = "primary", size: keyof typeof SIZES = "md", extra?: string) {
   return cx(
-    "inline-flex items-center justify-center rounded-[10px] font-semibold whitespace-nowrap transition-[transform,box-shadow,background-color,filter] duration-150 ease-[var(--ease-snap)] disabled:opacity-50 disabled:pointer-events-none select-none",
+    "inline-flex items-center justify-center rounded-[11px] font-semibold whitespace-nowrap transition-[transform,box-shadow,background-color,border-color,color] duration-200 ease-[var(--ease-snap)] disabled:opacity-45 disabled:pointer-events-none select-none",
     VARIANTS[variant],
     SIZES[size],
     extra,
@@ -48,21 +49,22 @@ export function ButtonLink({ href, variant = "primary", size = "md", className, 
 type Tone = "neutral" | "blue" | "success" | "warning" | "danger" | "night";
 const TONES: Record<Tone, string> = {
   neutral: "bg-mist text-ink",
-  blue: "bg-light/70 text-night",
+  blue: "bg-blue/15 text-blue-strong",
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
-  night: "bg-night text-light",
+  night: "bg-accent text-on-accent",
 };
 export function Badge({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return <span className={cx("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold", TONES[tone], className)}>{children}</span>;
 }
 
 export function Notice({ tone = "blue", title, children, className }: { tone?: Tone; title?: ReactNode; children?: ReactNode; className?: string }) {
-  const border = { neutral: "border-line", blue: "border-blue", success: "border-success", warning: "border-warning", danger: "border-danger", night: "border-night" }[tone];
+  const accent = { neutral: "border-line", blue: "border-blue", success: "border-success", warning: "border-warning", danger: "border-danger", night: "border-edge" }[tone];
+  const bg = { neutral: "bg-surface", blue: "bg-blue/[0.07]", success: "bg-success-soft/60", warning: "bg-warning-soft/60", danger: "bg-danger-soft/60", night: "bg-surface" }[tone];
   return (
-    <div className={cx("rounded-xl border-l-4 bg-white px-4 py-3 text-sm", border, className)} role={tone === "danger" ? "alert" : undefined}>
-      {title && <p className="font-semibold text-night">{title}</p>}
+    <div className={cx("rounded-xl border border-l-4 border-line px-4 py-3 text-sm", accent, bg, className)} role={tone === "danger" ? "alert" : undefined}>
+      {title && <p className="font-semibold text-fg">{title}</p>}
       {children && <div className={cx("text-ink", !!title && "mt-1")}>{children}</div>}
     </div>
   );

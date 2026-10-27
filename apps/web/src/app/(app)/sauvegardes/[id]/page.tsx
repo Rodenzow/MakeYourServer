@@ -41,7 +41,7 @@ export default async function BackupPage({ params, searchParams }: { params: Pro
         title={b.label ?? `Sauvegarde n°${b.version}`}
         actions={
           <>
-            <a href={`/sauvegardes/${b.id}?restaurer=1`} className="inline-flex h-10 items-center rounded-[10px] border-2 border-night bg-night px-4 font-semibold text-white shadow-[3px_3px_0_0_var(--color-blue)]">
+            <a href={`/sauvegardes/${b.id}?restaurer=1`} className="inline-flex h-10 items-center rounded-[10px] border-2 border-edge bg-night px-4 font-semibold text-white shadow-[3px_3px_0_0_var(--color-blue)]">
               Restaurer…
             </a>
             <ActionButton url="/api/projects" body={{ source: "backup", backupId: b.id }} redirectFromResponse={(d) => `/projets/${(d.project as { id: string }).id}`}>

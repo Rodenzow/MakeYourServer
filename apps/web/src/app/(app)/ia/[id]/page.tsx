@@ -17,7 +17,7 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-6">
       <p className="text-sm">
-        <Link href="/ia" className="text-muted hover:text-night">
+        <Link href="/ia" className="text-muted hover:text-fg">
           ← Conception IA
         </Link>
       </p>

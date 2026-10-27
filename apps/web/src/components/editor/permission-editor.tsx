@@ -73,7 +73,7 @@ export function OverwriteEditor({ overwrites, roles, kind, onChange }: { overwri
             key={t}
             type="button"
             onClick={() => setActive(t)}
-            className={cx("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold", active === t ? "border-night bg-night text-white" : "border-line bg-white hover:border-night")}
+            className={cx("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold", active === t ? "border-edge bg-accent text-on-accent" : "border-line bg-surface hover:border-edge")}
           >
             <span className="size-2 rounded-full" style={{ background: t === EVERYONE ? "#99aab5" : colorHex(roles.find((r) => r.id === t)?.color) }} />
             {roleName(t)}
@@ -82,7 +82,7 @@ export function OverwriteEditor({ overwrites, roles, kind, onChange }: { overwri
         ))}
         {available.length > 0 && (
           <select
-            className="rounded-full border border-dashed border-line bg-white px-2 py-1 text-xs"
+            className="rounded-full border border-dashed border-line bg-surface px-2 py-1 text-xs"
             value=""
             onChange={(e) => e.target.value && setActive(e.target.value)}
             aria-label="Ajouter un rôle"
@@ -130,7 +130,7 @@ function TriState({ value, onChange, label }: { value: Tri; onChange: (v: Tri) =
   return (
     <div className="flex shrink-0 overflow-hidden rounded-md border border-line">
       {btn("deny", <IconX size={13} />, "Refusée", "bg-danger text-white")}
-      {btn("neutral", <span className="text-xs">/</span>, "Héritée", "bg-mist text-night")}
+      {btn("neutral", <span className="text-xs">/</span>, "Héritée", "bg-mist text-fg")}
       {btn("allow", <IconCheck size={13} />, "Autorisée", "bg-success text-white")}
     </div>
   );
@@ -156,7 +156,7 @@ export function RolePermissions({ value, onChange, selfAssignable }: { value: Pe
               return (
                 <li key={k}>
                   <label className={cx("flex cursor-pointer items-center gap-2 text-sm", blocked && "opacity-50")}>
-                    <input type="checkbox" className="accent-[var(--color-night)]" checked={value.includes(k)} disabled={blocked && !value.includes(k)} onChange={() => toggle(k)} />
+                    <input type="checkbox" className="accent-[var(--color-blue)]" checked={value.includes(k)} disabled={blocked && !value.includes(k)} onChange={() => toggle(k)} />
                     {PERMISSIONS[k].label}
                     {isDangerous(k) && <span className="rounded bg-warning-soft px-1 text-[10px] font-bold text-warning">sensible</span>}
                   </label>

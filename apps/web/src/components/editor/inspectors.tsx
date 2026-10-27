@@ -145,7 +145,7 @@ export function ChannelInspector({ editor, id, onSelect }: { editor: Editor; id:
           <ul className="space-y-1">
             {messages.map((m) => (
               <li key={m.id}>
-                <button type="button" onClick={() => onSelect({ kind: "message", id: m.id })} className="w-full rounded-lg border border-line bg-white px-3 py-2 text-left text-sm hover:border-night">
+                <button type="button" onClick={() => onSelect({ kind: "message", id: m.id })} className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm hover:border-edge">
                   <span className="font-medium">{m.embeds[0]?.title ?? m.content?.slice(0, 60) ?? m.id}</span>
                   <span className="ml-2 text-xs text-muted">
                     {m.buttons.length ? `${m.buttons.length} bouton(s)` : ""} {m.pin ? "· épinglé" : ""}
@@ -257,7 +257,7 @@ export function Header({ kind, title, actions, back }: { kind: string; title: st
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         {back && (
-          <button type="button" onClick={back} className="mb-1 text-xs font-semibold text-muted hover:text-night">
+          <button type="button" onClick={back} className="mb-1 text-xs font-semibold text-muted hover:text-fg">
             ← Retour au salon
           </button>
         )}

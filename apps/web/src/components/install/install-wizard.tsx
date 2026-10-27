@@ -58,13 +58,19 @@ export function InstallWizard({ source, validationErrors = [], sandbox }: { sour
           Corrigez-les dans l’éditeur avant d’installer : {validationErrors.slice(0, 3).join(" · ")}
         </Notice>
       )}
-      <ol className="mt-6 flex flex-wrap gap-2" aria-label="Étapes">
+      <ol className="mt-6 flex flex-wrap items-center gap-2" aria-label="Étapes">
         {steps.map(([k, label], i) => {
           const idx = steps.findIndex(([s]) => s === step);
           const done = i < idx;
+          const current = k === step;
           return (
-            <li key={k} className={cx("flex items-center gap-2 rounded-full border-2 px-3 py-1 text-sm font-semibold", k === step ? "border-night bg-night text-white" : done ? "border-night bg-light" : "border-line bg-white text-muted")} aria-current={k === step ? "step" : undefined}>
-              <span className="font-mono text-xs">{done ? <IconCheck size={13} /> : i + 1}</span> {label}
+            <li key={k} className="flex items-center gap-2">
+              {i > 0 && <span className={cx("h-px w-6 transition-colors duration-500", done || current ? "bg-blue" : "bg-line")} aria-hidden />}
+              <span className={cx("relative flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold transition-colors", current ? "border-light text-on-accent" : done ? "border-blue text-light" : "border-line text-muted")} aria-current={current ? "step" : undefined}>
+                {current && <motion.span layoutId="wizard-step" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
+                <span className="relative flex size-5 items-center justify-center rounded-full font-mono text-xs">{done ? <IconCheck size={13} /> : i + 1}</span>
+                <span className="relative">{label}</span>
+              </span>
             </li>
           );
         })}
@@ -173,7 +179,7 @@ function ServerStep({ onPick }: { onPick: (g: Guild) => void }) {
                 </Button>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <a href={g.inviteUrl ?? "#"} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-night bg-light px-3 text-sm font-semibold">
+                  <a href={g.inviteUrl ?? "#"} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-edge bg-light px-3 text-sm font-semibold">
                     <IconBot size={15} /> Inviter le bot
                   </a>
                   <button type="button" className="text-xs font-semibold text-muted underline" onClick={() => load(true)}>
@@ -209,7 +215,7 @@ function ServerStep({ onPick }: { onPick: (g: Guild) => void }) {
           {guilds?.find((g) => !g.botPresent)?.inviteUrlMinimal && (
             <p className="mt-2 text-muted">
               Préférez des permissions limitées ?{" "}
-              <a className="font-semibold text-night underline" href={guilds.find((g) => !g.botPresent)!.inviteUrlMinimal!} target="_blank" rel="noreferrer">
+              <a className="font-semibold text-fg underline" href={guilds.find((g) => !g.botPresent)!.inviteUrlMinimal!} target="_blank" rel="noreferrer">
                 Invitation minimale
               </a>{" "}
               (l’analyse vous dira ce qui manque).
@@ -222,6 +228,8 @@ function ServerStep({ onPick }: { onPick: (g: Guild) => void }) {
 }
 
 /* ---------------------------------- Mode ---------------------------------- */
+
+const RECOMMENDED: Partial<Record<InstallMode, string>> = { empty: "Idéal pour un serveur tout neuf", merge: "Idéal pour un serveur déjà utilisé" };
 
 function ModeStep(p: {
   source: InstallSource;
@@ -257,16 +265,20 @@ function ModeStep(p: {
   return (
     <div className="space-y-8">
       <p className="text-sm text-muted">
-        Serveur : <strong className="text-night">{p.guild.name}</strong>
+        Serveur : <strong className="text-fg">{p.guild.name}</strong>
       </p>
       <fieldset>
         <legend className="text-xl font-bold">Comment installer ?</legend>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {modes.map(([k, label, desc]) => (
-            <label key={k} className={cx("cursor-pointer rounded-[14px] border-2 p-4 transition-shadow", p.mode === k ? "border-night bg-white shadow-[4px_4px_0_0_var(--color-night)]" : "border-line bg-white hover:border-night")}>
+            <label key={k} className={cx("relative cursor-pointer rounded-[16px] border p-4 transition-all duration-300 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-light", p.mode === k ? "-translate-y-0.5 border-light bg-surface shadow-[4px_4px_0_0_rgb(131_168_243/0.35)]" : "border-line bg-surface hover:border-edge")}>
               <input type="radio" name="mode" value={k} checked={p.mode === k} onChange={() => p.setMode(k)} className="sr-only" />
-              <span className="font-display text-lg font-semibold">{label}</span>
-              <span className="mt-1 block text-sm text-muted">{desc}</span>
+              <span className="flex items-start justify-between gap-2">
+                <span className="font-display text-lg font-semibold">{label}</span>
+                <span className={cx("flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors", p.mode === k ? "border-light bg-accent text-on-accent" : "border-line")}>{p.mode === k && <IconCheck size={12} />}</span>
+              </span>
+              {RECOMMENDED[k] && <span className="mt-1 inline-block rounded-md bg-blue/15 px-1.5 py-0.5 text-[11px] font-semibold text-blue-strong">{RECOMMENDED[k]}</span>}
+              <span className="mt-1.5 block text-sm text-muted">{desc}</span>
             </label>
           ))}
         </div>
@@ -275,7 +287,18 @@ function ModeStep(p: {
       {p.mode === "targeted" && <TargetPicker source={p.source} selected={p.selected} setSelected={p.setSelected} />}
 
       {p.mode !== "targeted" && p.source.kind === "project" && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <details className="group panel p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <span>
+              <span className="font-semibold">Options avancées</span>
+              <span className="block text-sm text-muted">
+                Existant : {p.existingChannels === "keep" ? "conservé" : p.existingChannels === "archive" ? "salons archivés" : "salons supprimés"}
+                {p.existingRoles === "delete" ? ", rôles supprimés" : ", rôles conservés"} · messages {p.includeMessages ? "publiés" : "non publiés"}
+              </span>
+            </span>
+            <span className="text-sm font-semibold text-light transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+        <div className="mt-4 grid gap-6 md:grid-cols-2">
           <fieldset className="panel p-4">
             <legend className="px-1 font-semibold">Salons existants hors projet</legend>
             {(
@@ -286,7 +309,7 @@ function ModeStep(p: {
               ] as const
             ).map(([k, label, hint, icon]) => (
               <label key={k} className="mt-2 flex cursor-pointer gap-3 rounded-lg p-2 hover:bg-mist">
-                <input type="radio" name="existing" checked={p.existingChannels === k} onChange={() => p.setExistingChannels(k)} className="mt-1 accent-[var(--color-night)]" />
+                <input type="radio" name="existing" checked={p.existingChannels === k} onChange={() => p.setExistingChannels(k)} className="mt-1 accent-[var(--color-blue)]" />
                 <span className="text-sm">
                   <span className={cx("flex items-center gap-1.5 font-semibold", k === "delete" && "text-danger")}>
                     {icon} {label}
@@ -299,23 +322,24 @@ function ModeStep(p: {
           <fieldset className="panel p-4">
             <legend className="px-1 font-semibold">Rôles existants hors projet</legend>
             <label className="mt-2 flex cursor-pointer gap-3 rounded-lg p-2 hover:bg-mist">
-              <input type="radio" name="roles" checked={p.existingRoles === "keep"} onChange={() => p.setExistingRoles("keep")} className="mt-1 accent-[var(--color-night)]" />
+              <input type="radio" name="roles" checked={p.existingRoles === "keep"} onChange={() => p.setExistingRoles("keep")} className="mt-1 accent-[var(--color-blue)]" />
               <span className="text-sm">
                 <span className="font-semibold">Les conserver</span> <span className="text-muted">— recommandé.</span>
               </span>
             </label>
             <label className="mt-1 flex cursor-pointer gap-3 rounded-lg p-2 hover:bg-mist">
-              <input type="radio" name="roles" checked={p.existingRoles === "delete"} onChange={() => p.setExistingRoles("delete")} className="mt-1 accent-[var(--color-night)]" />
+              <input type="radio" name="roles" checked={p.existingRoles === "delete"} onChange={() => p.setExistingRoles("delete")} className="mt-1 accent-[var(--color-blue)]" />
               <span className="text-sm">
                 <span className="font-semibold text-danger">Les supprimer</span> <span className="text-muted">— retirés à tous leurs membres. Confirmation écrite requise.</span>
               </span>
             </label>
             <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" checked={p.includeMessages} onChange={(e) => p.setIncludeMessages(e.target.checked)} className="accent-[var(--color-night)]" />
+              <input type="checkbox" checked={p.includeMessages} onChange={(e) => p.setIncludeMessages(e.target.checked)} className="accent-[var(--color-blue)]" />
               Publier les messages préparés (règlement, accueil…)
             </label>
           </fieldset>
         </div>
+        </details>
       )}
 
       {p.source.kind === "backup" && p.source.messageChannels.length > 0 && (
@@ -334,10 +358,10 @@ function ModeStep(p: {
         </fieldset>
       )}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-dashed border-line bg-white p-4">
-        <input type="checkbox" checked={p.dryRun} onChange={(e) => p.setDryRun(e.target.checked)} className="mt-1 accent-[var(--color-night)]" />
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-edge bg-surface/60 p-4 transition-colors hover:border-blue">
+        <input type="checkbox" checked={p.dryRun} onChange={(e) => p.setDryRun(e.target.checked)} className="mt-1 accent-[var(--color-blue)]" />
         <span className="text-sm">
-          <span className="font-semibold">Mode simulation (validation)</span>
+          <span className="font-semibold">Faire d’abord une simulation (recommandé la première fois)</span>
           <span className="block text-muted">Rejoue toute l’installation sur une copie en mémoire de votre serveur, avec les mêmes contrôles et limites. Aucune modification n’est envoyée à Discord.</span>
         </span>
       </label>
@@ -365,7 +389,7 @@ function TargetPicker({ source, selected, setSelected }: { source: InstallSource
   const toggle = (id: string) => setSelected(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
   const box = (id: string, label: string) => (
     <label key={id} className="flex items-center gap-2 py-0.5 text-sm">
-      <input type="checkbox" className="accent-[var(--color-night)]" checked={selected.includes(id)} onChange={() => toggle(id)} />
+      <input type="checkbox" className="accent-[var(--color-blue)]" checked={selected.includes(id)} onChange={() => toggle(id)} />
       {label}
     </label>
   );
@@ -522,7 +546,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
         </Button>
       </div>
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border-2 border-night bg-night sm:grid-cols-3 lg:grid-cols-6">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border-2 border-edge bg-night sm:grid-cols-3 lg:grid-cols-6">
         {[
           ["Créations", plan.summary.create, "text-success"],
           ["Modifications", plan.summary.update, "text-blue-strong"],
@@ -531,7 +555,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
           ["Suppressions", plan.summary.delete, plan.summary.delete ? "text-danger" : ""],
           ["Existant conservé", plan.summary.existingKept, ""],
         ].map(([k, v, cls]) => (
-          <div key={k as string} className="bg-white px-4 py-3">
+          <div key={k as string} className="bg-surface px-4 py-3">
             <dt className="text-xs text-muted">{k}</dt>
             <dd className={cx("font-display text-2xl font-bold", cls as string)}>{v}</dd>
           </div>
@@ -548,7 +572,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
         </Notice>
       )}
       {plan.warnings.length > 0 && (
-        <details className="rounded-xl border-l-4 border-warning bg-white px-4 py-3 text-sm" open={plan.warnings.length <= 4}>
+        <details className="rounded-xl border-l-4 border-warning bg-surface px-4 py-3 text-sm" open={plan.warnings.length <= 4}>
           <summary className="cursor-pointer font-semibold">À savoir ({plan.warnings.length})</summary>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-ink">
             {plan.warnings.map((w, i) => (
@@ -562,7 +586,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
         <section>
           <h3 className="text-lg font-bold">Éléments déjà présents sur le serveur ({plan.conflicts.length})</h3>
           <p className="text-sm text-muted">Pour chacun, choisissez quoi faire. Par défaut, rien d’existant n’est modifié en mode « Ajout ».</p>
-          <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
+          <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-surface">
             {plan.conflicts.map((c) => (
               <li key={c.localId} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
                 <Badge>{c.kind === "role" ? "Rôle" : c.kind === "category" ? "Catégorie" : "Salon"}</Badge>
@@ -616,7 +640,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
                   {ops.map((o) => (
                     <li key={o.key} className="flex items-start gap-2">
                       {o.optional ? (
-                        <input type="checkbox" className="mt-1 accent-[var(--color-night)]" checked={!excluded.includes(o.key)} onChange={(e) => setExcluded(e.target.checked ? excluded.filter((x) => x !== o.key) : [...excluded, o.key])} aria-label={o.label} />
+                        <input type="checkbox" className="mt-1 accent-[var(--color-blue)]" checked={!excluded.includes(o.key)} onChange={(e) => setExcluded(e.target.checked ? excluded.filter((x) => x !== o.key) : [...excluded, o.key])} aria-label={o.label} />
                       ) : (
                         <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-blue" />
                       )}
@@ -634,14 +658,14 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
       </section>
 
       {plan.manualSteps.length > 0 && (
-        <section className="rounded-xl border-2 border-dashed border-line bg-white p-4 text-sm">
+        <section className="rounded-xl border-2 border-dashed border-line bg-surface p-4 text-sm">
           <p className="flex items-center gap-2 font-semibold">
             <IconInfo size={16} /> Après l’installation, {plan.manualSteps.length} étape(s) à terminer vous-même
           </p>
           <ul className="mt-2 list-disc pl-5 text-muted">
             {plan.manualSteps.map((m) => (
               <li key={m.id}>
-                <strong className="text-night">{m.title}</strong> — {m.why}
+                <strong className="text-fg">{m.title}</strong> — {m.why}
               </li>
             ))}
           </ul>
@@ -666,7 +690,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
                 <li key={o.key}>{o.label}</li>
               ))}
             </ul>
-            <label className="mt-3 block text-sm text-night">
+            <label className="mt-3 block text-sm text-fg">
               Pour confirmer, saisissez le nom exact du serveur : <strong>{plan.guildName}</strong>
               <input className="field mt-1" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
             </label>
@@ -700,7 +724,7 @@ function AnalysingState() {
   }, [lines.length]);
   return (
     <div className="flex flex-col items-center py-6 text-center" aria-live="polite">
-      <motion.div className="size-12 rounded-xl border-2 border-night bg-light" animate={reduce ? undefined : { rotate: [0, 90, 180, 270, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }} />
+      <motion.div className="size-12 rounded-xl border-2 border-edge bg-light" animate={reduce ? undefined : { rotate: [0, 90, 180, 270, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }} />
       <p className="mt-4 font-semibold">{lines[i]}</p>
       <p className="mt-1 text-sm text-muted">L’analyse lit l’état réel du serveur ; rien n’est modifié.</p>
     </div>

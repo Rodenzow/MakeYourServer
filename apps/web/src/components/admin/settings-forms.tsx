@@ -55,7 +55,7 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValues }) {
       }}
     >
       <label className="flex items-center gap-2 text-sm font-semibold">
-        <input type="checkbox" className="size-4 accent-[var(--color-night)]" checked={v.enabled} onChange={(e) => setV({ ...v, enabled: e.target.checked })} />
+        <input type="checkbox" className="size-4 accent-[var(--color-blue)]" checked={v.enabled} onChange={(e) => setV({ ...v, enabled: e.target.checked })} />
         Conception IA activée pour les comptes Premium
       </label>
       <div className="grid gap-4 md:grid-cols-2">
@@ -107,11 +107,11 @@ export function MaintenanceForm({ initial }: { initial: MaintenanceValues }) {
       }}
     >
       <label className="flex items-center gap-2 text-sm font-semibold">
-        <input type="checkbox" className="size-4 accent-[var(--color-night)]" checked={v.enabled} onChange={(e) => setV({ ...v, enabled: e.target.checked })} />
+        <input type="checkbox" className="size-4 accent-[var(--color-blue)]" checked={v.enabled} onChange={(e) => setV({ ...v, enabled: e.target.checked })} />
         Afficher le bandeau de maintenance
       </label>
       <label className="flex items-center gap-2 text-sm font-semibold">
-        <input type="checkbox" className="size-4 accent-[var(--color-night)]" checked={v.blockInstalls} onChange={(e) => setV({ ...v, blockInstalls: e.target.checked })} />
+        <input type="checkbox" className="size-4 accent-[var(--color-blue)]" checked={v.blockInstalls} onChange={(e) => setV({ ...v, blockInstalls: e.target.checked })} />
         Bloquer les nouvelles installations (celles en cours se terminent)
       </label>
       <div>

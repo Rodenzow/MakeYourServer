@@ -23,11 +23,11 @@ export function AppNav({ items, layoutId = "app-nav" }: { items: NavItem[]; layo
             <Link
               href={it.href}
               aria-current={active(it.href) ? "page" : undefined}
-              className={cx("relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors", active(it.href) ? "text-white" : "text-ink hover:bg-mist")}
+              className={cx("relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors", active(it.href) ? "text-on-accent" : "text-ink hover:bg-mist hover:text-fg")}
             >
-              {active(it.href) && <motion.span layoutId={layoutId} className="absolute inset-0 rounded-lg bg-night" transition={{ type: "spring", bounce: 0.12, duration: 0.35 }} />}
+              {active(it.href) && <motion.span layoutId={layoutId} className="absolute inset-0 rounded-lg bg-accent" transition={{ type: "spring", bounce: 0.12, duration: 0.35 }} />}
               <span className="relative">{it.label}</span>
-              {it.badge && <span className="relative rounded bg-light px-1.5 text-[10px] font-bold text-night">{it.badge}</span>}
+              {it.badge && <span className="relative rounded bg-light px-1.5 text-[10px] font-bold text-on-accent">{it.badge}</span>}
             </Link>
           </li>
         ))}

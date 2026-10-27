@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ManualStep } from "@mys/core";
 import { StepIcon } from "../step-icon";
+import { SuccessBurst } from "./success-burst";
 import { Badge, Button, ButtonLink, Notice, cx, formatDate } from "../ui";
 import { IconCheck, IconHand } from "../icons";
 
@@ -128,6 +129,8 @@ export function InstallationProgress({ id }: { id: string }) {
         </div>
       </div>
 
+      {inst.status === "succeeded" && <SuccessBurst guildId={inst.guildId} dryRun={inst.dryRun} projectId={inst.projectId} kind={inst.kind} />}
+
       {inst.dryRun && <Notice tone="warning" title="Simulation">Cette exécution a eu lieu sur une copie en mémoire de votre serveur : rien n’a été modifié sur Discord. Relancez sans le mode simulation pour installer réellement.</Notice>}
 
       <div className="brick p-5">
@@ -146,7 +149,7 @@ export function InstallationProgress({ id }: { id: string }) {
         {inst.safetyBackupId && (
           <p className="mt-2 text-sm text-muted">
             Sauvegarde de sécurité prise avant les modifications :{" "}
-            <Link href={`/sauvegardes/${inst.safetyBackupId}`} className="font-semibold text-night underline">
+            <Link href={`/sauvegardes/${inst.safetyBackupId}`} className="font-semibold text-fg underline">
               la consulter
             </Link>
           </p>
@@ -214,7 +217,7 @@ function ManualAssistant({ steps }: { steps: ManualStep[] }) {
                     <p className="font-semibold">{c.label}</p>
                     <button
                       type="button"
-                      className="rounded-md border border-line bg-white px-2 py-0.5 text-xs font-semibold"
+                      className="rounded-md border border-line bg-surface px-2 py-0.5 text-xs font-semibold"
                       onClick={() => {
                         void navigator.clipboard?.writeText(c.value);
                         setCopied(c.label);

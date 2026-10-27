@@ -33,16 +33,16 @@ export function RoleDemo() {
   return (
     <div className="grid items-start gap-6 md:grid-cols-[0.9fr_1fr]">
       <div>
-        <div role="radiogroup" aria-label="Voir le serveur comme…" className="inline-flex rounded-xl border-2 border-night bg-white p-1">
+        <div role="radiogroup" aria-label="Voir le serveur comme…" className="inline-flex rounded-xl border border-edge bg-surface p-1">
           {ROLES.map((r) => (
             <button
               key={r.key}
               role="radio"
               aria-checked={role === r.key}
               onClick={() => setRole(r.key)}
-              className={cx("relative rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors", role === r.key ? "text-white" : "text-ink hover:text-night")}
+              className={cx("relative rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors", role === r.key ? "text-on-accent" : "text-ink hover:text-fg")}
             >
-              {role === r.key && <motion.span layoutId="role-pill" className="absolute inset-0 rounded-lg bg-night" transition={{ type: "spring", bounce: 0.15, duration: 0.35 }} />}
+              {role === r.key && <motion.span layoutId="role-pill" className="absolute inset-0 rounded-lg bg-accent" transition={{ type: "spring", bounce: 0.15, duration: 0.35 }} />}
               <span className="relative">{r.label}</span>
             </button>
           ))}

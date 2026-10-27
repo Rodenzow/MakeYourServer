@@ -78,7 +78,7 @@ export function TemplateBrowser({ initial }: { initial: TemplateCard[] }) {
                 type="button"
                 aria-pressed={features.includes(k)}
                 onClick={() => toggleFeature(k)}
-                className={cx("rounded-full border px-2.5 py-1 text-xs font-medium transition-colors", features.includes(k) ? "border-night bg-night text-white" : "border-line bg-white text-ink hover:border-night")}
+                className={cx("rounded-full border px-2.5 py-1 text-xs font-medium transition-colors", features.includes(k) ? "border-edge bg-accent text-on-accent" : "border-line bg-surface text-ink hover:border-edge")}
               >
                 {label}
               </button>
@@ -141,7 +141,7 @@ function Filter({ label, value, onChange, options }: { label: string; value: str
       <div className="flex flex-col gap-0.5">
         {[["", "Tous"] as [string, string], ...options].map(([k, v]) => (
           <label key={k || "all"} className={cx("flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm", value === k ? "bg-mist font-semibold" : "hover:bg-mist/60")}>
-            <input type="radio" name={label} className="accent-[var(--color-night)]" checked={value === k} onChange={() => onChange(k)} />
+            <input type="radio" name={label} className="accent-[var(--color-blue)]" checked={value === k} onChange={() => onChange(k)} />
             {v}
           </label>
         ))}
@@ -175,7 +175,7 @@ export function TemplateTile({ t }: { t: TemplateCard }) {
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center gap-2">
           <p className="eyebrow">{THEME_LABELS[t.theme as keyof typeof THEME_LABELS] ?? t.theme}</p>
-          {t.official && <span className="rounded bg-light px-1.5 text-[10px] font-bold text-night">OFFICIEL</span>}
+          {t.official && <span className="rounded bg-light px-1.5 text-[10px] font-bold text-on-accent">OFFICIEL</span>}
         </div>
         <h3 className="mt-1 text-lg leading-tight font-bold">{t.name}</h3>
         <p className="mt-1.5 line-clamp-2 text-sm text-muted">{t.tagline}</p>

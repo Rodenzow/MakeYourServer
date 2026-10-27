@@ -13,9 +13,9 @@ export function BeforeAfter({ before, after, beforeLabel = "Avant", afterLabel =
         <figcaption className="eyebrow mb-2">{beforeLabel}</figcaption>
         <ServerTree categories={before} dense animate={false} className="flex-1 !bg-[#2a2f40] opacity-90" />
       </figure>
-      <div className="flex items-center justify-center text-night" aria-hidden>
+      <div className="flex items-center justify-center text-fg" aria-hidden>
         <motion.span
-          className="flex size-10 items-center justify-center rounded-full border-2 border-night bg-light rotate-90 sm:rotate-0"
+          className="flex size-10 items-center justify-center rounded-full border-2 border-edge bg-light rotate-90 sm:rotate-0"
           animate={reduce ? undefined : { x: [0, 4, 0] }}
           transition={{ repeat: Infinity, duration: 1.6 }}
         >

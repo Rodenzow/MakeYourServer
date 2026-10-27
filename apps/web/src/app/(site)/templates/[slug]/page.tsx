@@ -6,7 +6,9 @@ import { getPublishedTemplate } from "@/lib/data";
 import { getCurrentUser } from "@/lib/session";
 import { SpecPreview, RolesOverview } from "@/components/spec/spec-preview";
 import { UseTemplateButton } from "@/components/templates/use-template-button";
-import { Badge, colorHex } from "@/components/ui";
+import { StickyCta } from "@/components/templates/sticky-cta";
+import { AnimatedNumber, Reveal } from "@/components/motion";
+import { Badge } from "@/components/ui";
 import { ChannelIcon, IconCheck, IconHand } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
   const s = specStats(spec);
   return (
     <article>
-      <Link href="/templates" className="text-sm font-semibold text-muted hover:text-night">
+      <Link href="/templates" className="text-sm font-semibold text-muted hover:text-fg">
         ← Tous les templates
       </Link>
       <header className="mt-4 grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-end">
@@ -42,14 +44,14 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
         <div className="brick p-5">
           <p className="eyebrow">Pour qui ?</p>
           <p className="mt-1 text-sm">{t.audience}</p>
-          <div className="mt-4">
+          <div className="mt-4" id="cta-principal">
             <UseTemplateButton slug={t.slug} loggedIn={!!user} />
           </div>
           <p className="mt-3 text-xs text-muted">Gratuit. Rien n’est installé tant que vous n’avez pas vérifié l’analyse et confirmé.</p>
         </div>
       </header>
 
-      <dl className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border-2 border-night bg-night sm:grid-cols-4 lg:grid-cols-7">
+      <dl className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border-2 border-edge bg-night sm:grid-cols-4 lg:grid-cols-7">
         {[
           ["Catégories", s.categories],
           ["Salons textuels", s.textChannels],
@@ -59,18 +61,20 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           ["Messages rédigés", s.messages],
           ["Règles AutoMod", s.automodRules],
         ].map(([k, v]) => (
-          <div key={k as string} className="bg-white px-4 py-3">
+          <div key={k as string} className="bg-surface px-4 py-3">
             <dt className="text-xs text-muted">{k}</dt>
-            <dd className="font-display text-2xl font-bold">{v}</dd>
+            <dd className="font-display text-2xl font-bold text-light">
+              <AnimatedNumber value={v as number} />
+            </dd>
           </div>
         ))}
       </dl>
 
-      <section className="mt-12">
+      <Reveal className="mt-12">
         <h2 className="text-2xl font-bold">Aperçu interactif</h2>
         <p className="mt-1 mb-5 text-muted">Cliquez sur un salon pour lire ses messages, et choisissez un rôle pour voir ce qu’il voit.</p>
         <SpecPreview spec={spec} />
-      </section>
+      </Reveal>
 
       <div className="mt-12 grid gap-10 lg:grid-cols-2">
         <section>
@@ -148,7 +152,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           </div>
         </div>
         {spec.serverGuide && (
-          <div className="mt-4 flex gap-3 rounded-xl border-2 border-dashed border-line bg-white p-4 text-sm">
+          <div className="mt-4 flex gap-3 rounded-xl border-2 border-dashed border-line bg-surface p-4 text-sm">
             <IconHand className="mt-0.5 shrink-0 text-blue-strong" />
             <p>
               <strong>Guide du serveur :</strong> Discord ne permet pas de le configurer via son API publique. Son contenu est prêt et un assistant vous guidera pour le recopier après l’installation ({allChannels(spec).length} salons référencés).
@@ -160,7 +164,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
       <div className="mt-12 flex justify-center">
         <UseTemplateButton slug={t.slug} loggedIn={!!user} label="Utiliser ce template" />
       </div>
-      <span hidden style={{ color: colorHex(spec.meta.accentColor) }} />
+      <StickyCta slug={t.slug} name={t.name} loggedIn={!!user} watchId="cta-principal" />
     </article>
   );
 }

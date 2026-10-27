@@ -54,8 +54,8 @@ export function Filters({ children, action }: { children: ReactNode; action: str
   return (
     <form action={action} method="get" className="panel mb-4 flex flex-wrap items-end gap-3 p-3">
       {children}
-      <button className="h-10 rounded-[10px] border-2 border-night bg-night px-4 text-sm font-semibold text-white">Filtrer</button>
-      <Link href={action} className="h-10 px-2 text-sm leading-10 text-muted hover:text-night">
+      <button className="h-10 rounded-[10px] border-2 border-edge bg-night px-4 text-sm font-semibold text-white">Filtrer</button>
+      <Link href={action} className="h-10 px-2 text-sm leading-10 text-muted hover:text-fg">
         Réinitialiser
       </Link>
     </form>

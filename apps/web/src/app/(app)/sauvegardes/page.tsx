@@ -42,7 +42,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Prom
           <h2 className="font-display text-lg font-semibold">Sauvegardes programmées {q.scheduledBackups === 0 && <Badge tone="blue">Premium</Badge>}</h2>
           {q.scheduledBackups === 0 ? (
             <p className="mt-2 text-sm text-muted">
-              Avec le Premium, le bot sauvegarde automatiquement vos serveurs à intervalle régulier et garde plusieurs versions. <Link href="/abonnement" className="font-semibold text-night underline">Voir les offres</Link>
+              Avec le Premium, le bot sauvegarde automatiquement vos serveurs à intervalle régulier et garde plusieurs versions. <Link href="/abonnement" className="font-semibold text-fg underline">Voir les offres</Link>
             </p>
           ) : (
             <>

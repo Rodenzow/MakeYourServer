@@ -34,12 +34,12 @@ export function ChangeList({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: n * 0.05, duration: 0.2 }}
-          className={cx("panel p-4 transition-colors", selected.has(p.index) && p.valid && "border-night")}
+          className={cx("panel p-4 transition-colors", selected.has(p.index) && p.valid && "border-edge")}
         >
           <label className={cx("flex items-start gap-3", p.valid && !disabled ? "cursor-pointer" : "cursor-not-allowed")}>
             <input
               type="checkbox"
-              className="mt-1 size-4 accent-[var(--color-night)]"
+              className="mt-1 size-4 accent-[var(--color-blue)]"
               checked={selected.has(p.index)}
               disabled={!p.valid || disabled}
               onChange={() => onToggle(p.index)}

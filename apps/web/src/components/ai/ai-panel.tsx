@@ -142,18 +142,18 @@ export function AiPanel({ projectId, revision, onApplied }: { projectId: string;
           />
           <div className="flex flex-wrap gap-1.5">
             {SUGGESTIONS.map((s) => (
-              <button key={s} type="button" onClick={() => setInstruction(s)} className="rounded-full border border-line bg-white px-2.5 py-1 text-xs hover:border-night">
+              <button key={s} type="button" onClick={() => setInstruction(s)} className="rounded-full border border-line bg-surface px-2.5 py-1 text-xs hover:border-edge">
                 {s}
               </button>
             ))}
           </div>
           <div className="flex flex-col gap-1.5 text-sm">
             <label className="flex items-center gap-2">
-              <input type="checkbox" className="accent-[var(--color-night)]" checked={lockRoles} onChange={(e) => setLockRoles(e.target.checked)} />
+              <input type="checkbox" className="accent-[var(--color-blue)]" checked={lockRoles} onChange={(e) => setLockRoles(e.target.checked)} />
               Conserver mes rôles actuels
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" className="accent-[var(--color-night)]" checked={noRemovals} onChange={(e) => setNoRemovals(e.target.checked)} />
+              <input type="checkbox" className="accent-[var(--color-blue)]" checked={noRemovals} onChange={(e) => setNoRemovals(e.target.checked)} />
               Ne rien supprimer
             </label>
           </div>

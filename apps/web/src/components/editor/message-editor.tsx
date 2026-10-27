@@ -146,16 +146,16 @@ function TokenHelp({ channels, roles }: { channels: Array<[string, string]>; rol
     <details className="rounded-xl border border-line bg-mist/50 p-3 text-sm">
       <summary className="cursor-pointer font-semibold">Mentionner un salon ou un rôle</summary>
       <p className="mt-2 text-muted">
-        Écrivez <code className="rounded bg-white px-1">{"{#identifiant}"}</code> pour un salon et <code className="rounded bg-white px-1">{"{@identifiant}"}</code> pour un rôle : ils deviendront de vraies mentions à l’installation, et restent corrects si vous renommez. <code className="rounded bg-white px-1">{"{server}"}</code> affiche le nom du serveur. Cliquez pour copier :
+        Écrivez <code className="rounded bg-surface px-1">{"{#identifiant}"}</code> pour un salon et <code className="rounded bg-surface px-1">{"{@identifiant}"}</code> pour un rôle : ils deviendront de vraies mentions à l’installation, et restent corrects si vous renommez. <code className="rounded bg-surface px-1">{"{server}"}</code> affiche le nom du serveur. Cliquez pour copier :
       </p>
       <div className="mt-2 flex max-h-32 flex-wrap gap-1 overflow-y-auto">
         {channels.map(([id, name]) => (
-          <button key={id} type="button" onClick={() => copy(`{#${id}}`)} className="rounded bg-white px-1.5 py-0.5 font-mono text-xs hover:bg-light">
+          <button key={id} type="button" onClick={() => copy(`{#${id}}`)} className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs hover:bg-light">
             #{name}
           </button>
         ))}
         {roles.map(([id, name]) => (
-          <button key={id} type="button" onClick={() => copy(`{@${id}}`)} className="rounded bg-white px-1.5 py-0.5 font-mono text-xs hover:bg-light">
+          <button key={id} type="button" onClick={() => copy(`{@${id}}`)} className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs hover:bg-light">
             @{name}
           </button>
         ))}
