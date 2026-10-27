@@ -44,7 +44,7 @@ Comptez environ **45 minutes** la première fois. Aucun outil n’est à install
 2. Choisissez le modèle **Edit Cloudflare Workers** → **Use template**.
 3. Dans **Permissions**, ajoutez (bouton *+ Add more*) :
    - `Account` · `Containers` · `Edit`
-   - `Account` · `Hyperdrive` · `Edit` *(seulement si vous utilisez Hyperdrive, étape 9)*
+   - `Account` · `Hyperdrive` · `Edit` *(le site se connecte à la base via Hyperdrive, créé automatiquement)*
 4. **Account Resources** : *Include* → votre compte. **Zone Resources** : *All zones* (sans effet sans domaine).
 5. **Continue to summary** → **Create Token**. Copiez le jeton **immédiatement** (il ne sera plus affiché) : c’est `CLOUDFLARE_API_TOKEN`.
 
@@ -156,15 +156,13 @@ Le résumé du workflow affiche l’adresse du site et la redirection OAuth à d
 
 Chaque fois que `main` change, tout est republié automatiquement (migrations comprises). Pour changer un secret : modifiez-le sur GitHub, puis **Actions → Run workflow**.
 
-## Étape 9 — Facultatif : accélérer la base avec Hyperdrive
+## Étape 9 — Hyperdrive (automatique)
 
-Hyperdrive garde des connexions ouvertes vers Supabase et rend chaque page plus rapide (inclus dans Workers Paid).
+Sur Cloudflare Workers, une connexion chiffrée directe vers Supabase n’aboutit pas (certificat signé par l’autorité propre à Supabase). Le site passe donc par **Hyperdrive**, inclus dans Workers Paid : il gère le chiffrement vers Supabase et garde des connexions ouvertes, ce qui rend les pages bien plus rapides.
 
-1. Cloudflare → **Storage & Databases → Hyperdrive → Create configuration**.
-2. Nom `mys-db`, collez votre `DATABASE_URL` (sans `?sslmode=require` si le formulaire le refuse) → **Create**.
-3. Copiez l’**ID** de la configuration → variable GitHub `HYPERDRIVE_ID` (étape 5) → **Run workflow**.
+Rien à faire : à chaque déploiement, le workflow crée ou met à jour la configuration `make-your-server-db` à partir de `DATABASE_URL` (cache désactivé, pour toujours afficher l’état réel). Le jeton API doit seulement avoir la permission **Hyperdrive · Edit** (étape 2). Le bot, qui tourne dans un vrai Node.js, se connecte directement avec `DATABASE_URL`.
 
-Le site utilise alors Hyperdrive ; le bot, qui garde sa propre connexion permanente, continue d’utiliser `DATABASE_URL`.
+Pour utiliser une configuration existante, définissez la variable GitHub `HYPERDRIVE_ID`.
 
 ## Étape 10 — Facultatif : IA et paiements
 
@@ -186,15 +184,18 @@ Le site utilise alors Hyperdrive ; le bot, qui garde sa propre connexion permane
 | --- | --- |
 | Le workflow s’arrête sur « Secrets GitHub manquants » | Le message liste les noms manquants : ajoutez-les (étape 5), noms exactement identiques. |
 | « Sous-domaine workers.dev introuvable » | Ouvrez une fois **Workers & Pages** dans Cloudflare pour choisir le sous-domaine (étape 1). |
+| « cannot create applications with the "default" scheduling policy » | Déjà pris en charge : le bot utilise la politique `durable_object` exigée par Cloudflare pour les nouveaux comptes. Mettez le code à jour. |
 | `Authentication error [code: 10000]` ou « Unauthorized » au déploiement du bot | Le jeton API n’a pas la permission **Containers · Edit** : modifiez-le (étape 2). Vérifiez aussi que l’offre **Workers Paid** est active. |
 | Erreur de taille « exceeds the size limit » pour le site | L’offre Workers Paid n’est pas active. |
 | Discord affiche « Invalid OAuth2 redirect_uri » | La redirection de l’étape 4 ne correspond pas exactement à l’adresse affichée dans le résumé du workflow. |
 | `/sante` : « Jeton du bot invalide » | Régénérez le jeton (portail Discord → Bot), mettez à jour `DISCORD_BOT_TOKEN` sur GitHub, relancez le workflow. |
 | `/sante` : « Intention refusée par Discord » | Activez *Server Members Intent* ou créez la variable `BOT_MEMBER_EVENTS` = `false`. |
+| « Le jeton Cloudflare n’a pas accès à Hyperdrive » | Modifiez le jeton (étape 2) : ajoutez **Compte · Hyperdrive · Modifier**, puis relancez. |
+| Les pages du site mettent 30 s puis affichent une erreur | Le site n’utilise pas Hyperdrive : vérifiez l’étape « Préparer Hyperdrive » du workflow. |
 | `/sante` : « Base de données injoignable » | Vérifiez `DATABASE_URL` : *Session pooler*, port `5432`, mot de passe correct, `?sslmode=require`. |
 | `/sante` ne répond pas juste après un déploiement | Le premier démarrage d’un conteneur prend quelques minutes ; un relanceur automatique le redémarre toutes les 5 minutes s’il s’est arrêté. |
 | Les commandes `/mys` n’apparaissent pas | Les commandes globales mettent jusqu’à 1 h à se propager. Pour un essai immédiat, définissez `DISCORD_DEV_GUILD_ID`. |
-| Le bot redémarre souvent (beaucoup de serveurs) | Le champ `memoireMo` de `/sante` approche 256 : dans `apps/bot-host/wrangler.jsonc`, passez `instance_type` de `lite` à `basic` (1 Gio, ≈ 6 $/mois de plus). |
+| Le bot redémarre souvent (beaucoup de serveurs) | Le champ `memoireMo` de `/sante` approche 256 : dans `apps/bot-host/src/index.ts`, passez `BOT_INSTANCE` de `"lite"` à `"standard-1"` (4 Gio, plus cher : voir la grille tarifaire). |
 
 **Journaux en direct** : Cloudflare → **Workers & Pages** → `make-your-server` (site) ou `make-your-server-bot` (bot) → **Logs**.
 

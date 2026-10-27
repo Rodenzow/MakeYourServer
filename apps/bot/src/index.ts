@@ -189,10 +189,12 @@ process.on("unhandledRejection", (e) => void logError("bot", "Promesse rejetée 
 
 /** Explique en français les causes de démarrage raté les plus courantes. */
 function explainStartupError(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e);
+  // Les erreurs de requête (Drizzle) portent la vraie cause dans `cause`.
+  const cause = e instanceof Error && e.cause instanceof Error ? e.cause.message : null;
+  const msg = cause ?? (e instanceof Error ? e.message : String(e));
   if (/invalid token|TokenInvalid/i.test(msg)) return "Jeton du bot invalide : régénérez-le (portail développeur → Bot) et mettez à jour DISCORD_BOT_TOKEN.";
   if (/disallowed intents/i.test(msg)) return "Intention refusée par Discord : activez « Server Members Intent » (portail développeur → Bot) ou mettez BOT_MEMBER_EVENTS=false.";
-  if (/password authentication|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|getaddrinfo|Tenant or user not found/i.test(msg))
+  if (/password authentication|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|getaddrinfo|Tenant or user not found|connect /i.test(msg))
     return `Base de données injoignable : vérifiez DATABASE_URL (${msg}).`;
   return msg;
 }

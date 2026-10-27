@@ -104,9 +104,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Activer Hyperdrive (facultatif)
+      # Sur Workers, la base passe par Hyperdrive (TLS vers Supabase géré par Cloudflare).
+      - name: Préparer Hyperdrive (connexion du site à la base)
+        id: hyperdrive
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           HYPERDRIVE_ID: ${{ vars.HYPERDRIVE_ID }}
+        run: node scripts/ci/ensure-hyperdrive.mjs
+
+      - name: Activer Hyperdrive dans la configuration du site
+        env:
+          HYPERDRIVE_ID: ${{ steps.hyperdrive.outputs.hyperdrive_id }}
         run: node scripts/ci/enable-hyperdrive.mjs
 
       - name: Construire (OpenNext)

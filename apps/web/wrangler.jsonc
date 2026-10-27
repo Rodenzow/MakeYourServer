@@ -16,7 +16,8 @@
     "AI_PROVIDER": "anthropic",
     "BOT_MEMBER_EVENTS": "true"
   }
-  // Hyperdrive (recommandé) : décommentez et remplacez l’identifiant obtenu avec
-  //   npx wrangler hyperdrive create mys-db --connection-string="postgres://…"
+  // Hyperdrive (indispensable avec Supabase) : le workflow GitHub le crée et active
+  // cette ligne automatiquement (scripts/ci/ensure-hyperdrive.mjs). À la main :
+  //   npx wrangler hyperdrive create make-your-server-db --connection-string="postgres://…"
   // ,"hyperdrive": [{ "binding": "HYPERDRIVE", "id": "VOTRE_ID_HYPERDRIVE" }]
 }
