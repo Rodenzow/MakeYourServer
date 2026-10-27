@@ -1,0 +1,37 @@
+{
+  "name": "make-your-server",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @mys/web dev",
+    "dev:bot": "pnpm --filter @mys/bot dev",
+    "build:web": "pnpm --filter @mys/web build",
+    "start:web": "pnpm --filter @mys/web start",
+    "start:bot": "pnpm --filter @mys/bot start",
+    "db:generate": "pnpm --filter @mys/db generate",
+    "db:migrate": "pnpm --filter @mys/db migrate",
+    "db:seed": "pnpm --filter @mys/db seed",
+    "bot:register": "pnpm --filter @mys/bot register",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "bash scripts/e2e.sh",
+    "test:discord": "tsx --env-file-if-exists=.env scripts/test-discord.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "type": "module",
+  "dependencies": {
+    "@mys/core": "workspace:*",
+    "@mys/db": "workspace:*",
+    "@mys/engine": "workspace:*"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@mys/bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "start": "tsx --env-file-if-exists=../../.env src/index.ts",
+    "register": "tsx --env-file-if-exists=../../.env src/register.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "sandbox": "tsx --env-file-if-exists=../../.env src/sandbox-worker.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/bot.mjs --external:zlib-sync --external:bufferutil --external:utf-8-validate --external:@discordjs/voice --banner:js=\"import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);\" --log-level=warning"
+  },
+  "dependencies": {
+    "@mys/core": "workspace:*",
+    "@mys/db": "workspace:*",
+    "@mys/engine": "workspace:*",
+    "discord.js": "^14.27.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

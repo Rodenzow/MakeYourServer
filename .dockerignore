@@ -1,0 +1,8 @@
+**/node_modules
+**/.next
+**/.open-next
+**/.wrangler
+.git
+.env
+**/.dev.vars
+**/*.log

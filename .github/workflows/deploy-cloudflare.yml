@@ -1,0 +1,201 @@
+# Déploiement de Make Your Server sur Cloudflare (site + bot).
+# Guide complet : DEPLOIEMENT-CLOUDFLARE.md
+#
+# Se lance à chaque push sur main, ou à la main depuis l’onglet « Actions »
+# (bouton « Run workflow »). Les secrets se configurent une seule fois dans
+# Settings → Secrets and variables → Actions.
+
+name: Déploiement Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cloudflare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  preparer:
+    name: Vérifier la configuration et mettre la base à jour
+    runs-on: ubuntu-latest
+    outputs:
+      app_url: ${{ steps.url.outputs.app_url }}
+      bot_url: ${{ steps.url.outputs.bot_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier les secrets obligatoires
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_ENCRYPTION_KEY: ${{ secrets.APP_ENCRYPTION_KEY }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+          DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          ADMIN_DISCORD_IDS: ${{ secrets.ADMIN_DISCORD_IDS }}
+        run: |
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DATABASE_URL APP_ENCRYPTION_KEY DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_BOT_TOKEN ADMIN_DISCORD_IDS; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets GitHub manquants :$missing (voir DEPLOIEMENT-CLOUDFLARE.md, étape 5)."
+            exit 1
+          fi
+          echo "Tous les secrets obligatoires sont présents."
+
+      - name: Déterminer l’adresse publique du site
+        id: url
+        env:
+          APP_URL_VAR: ${{ vars.APP_URL }}
+        run: |
+          sub=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);process.stdout.write(r.result?.subdomain??"")})' || true)
+          if [ -n "$APP_URL_VAR" ]; then
+            app_url="${APP_URL_VAR%/}"
+          elif [ -n "$sub" ]; then
+            app_url="https://make-your-server.$sub.workers.dev"
+          else
+            echo "::error::Sous-domaine workers.dev introuvable. Ouvrez Workers & Pages une première fois dans le tableau de bord Cloudflare pour le créer, ou définissez la variable APP_URL."
+            exit 1
+          fi
+          bot_url=""
+          if [ -n "$sub" ]; then bot_url="https://make-your-server-bot.$sub.workers.dev"; fi
+          echo "app_url=$app_url" >> "$GITHUB_OUTPUT"
+          echo "bot_url=$bot_url" >> "$GITHUB_OUTPUT"
+          echo "Adresse du site : $app_url"
+          echo "Redirection OAuth Discord à déclarer : $app_url/api/auth/callback"
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@mys/db..."
+
+      - name: Appliquer les migrations et les templates officiels
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_POOL_SIZE: "2"
+        run: |
+          pnpm --filter @mys/db migrate
+          pnpm --filter @mys/db seed
+
+  site:
+    name: Déployer le site
+    needs: preparer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Activer Hyperdrive (facultatif)
+        env:
+          HYPERDRIVE_ID: ${{ vars.HYPERDRIVE_ID }}
+        run: node scripts/ci/enable-hyperdrive.mjs
+
+      - name: Construire (OpenNext)
+        working-directory: apps/web
+        run: pnpm exec opennextjs-cloudflare build
+
+      - name: Publier sur Cloudflare Workers
+        working-directory: apps/web
+        run: pnpm exec opennextjs-cloudflare deploy
+
+      - name: Envoyer les secrets du site
+        env:
+          APP_URL: ${{ needs.preparer.outputs.app_url }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_ENCRYPTION_KEY: ${{ secrets.APP_ENCRYPTION_KEY }}
+          ADMIN_DISCORD_IDS: ${{ secrets.ADMIN_DISCORD_IDS }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+          DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          BOT_MEMBER_EVENTS: ${{ vars.BOT_MEMBER_EVENTS }}
+        run: |
+          f="$RUNNER_TEMP/site-secrets.json"
+          node scripts/ci/secrets-json.mjs "$f" APP_URL DATABASE_URL APP_ENCRYPTION_KEY ADMIN_DISCORD_IDS \
+            DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_BOT_TOKEN ANTHROPIC_API_KEY AI_MODEL \
+            STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET BOT_MEMBER_EVENTS
+          (cd apps/web && pnpm exec wrangler secret bulk "$f")
+          rm -f "$f"
+
+      - name: Résumé
+        env:
+          APP_URL: ${{ needs.preparer.outputs.app_url }}
+        run: |
+          {
+            echo "### Site en ligne"
+            echo "- Adresse : $APP_URL"
+            echo "- Redirection OAuth Discord : \`$APP_URL/api/auth/callback\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  bot:
+    name: Déployer le bot Discord
+    needs: preparer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@mys/bot-host..."
+
+      - name: Construire l’image et publier (Cloudflare Containers)
+        working-directory: apps/bot-host
+        run: pnpm exec wrangler deploy
+
+      # Les secrets créent une nouvelle version : le conteneur redémarre avec eux.
+      - name: Envoyer les secrets du bot
+        env:
+          APP_URL: ${{ needs.preparer.outputs.app_url }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_DEV_GUILD_ID: ${{ vars.DISCORD_DEV_GUILD_ID }}
+          BOT_MEMBER_EVENTS: ${{ vars.BOT_MEMBER_EVENTS }}
+        run: |
+          f="$RUNNER_TEMP/bot-secrets.json"
+          node scripts/ci/secrets-json.mjs "$f" APP_URL DATABASE_URL DISCORD_CLIENT_ID DISCORD_BOT_TOKEN \
+            DISCORD_DEV_GUILD_ID BOT_MEMBER_EVENTS
+          (cd apps/bot-host && pnpm exec wrangler secret bulk "$f")
+          rm -f "$f"
+
+      - name: Réveiller le bot et vérifier son état
+        env:
+          BOT_URL: ${{ needs.preparer.outputs.bot_url }}
+        run: |
+          if [ -z "$BOT_URL" ]; then echo "Adresse du bot inconnue : vérification ignorée."; exit 0; fi
+          # Le premier démarrage d’un conteneur peut prendre quelques minutes.
+          for i in $(seq 1 20); do
+            body=$(curl -fsS --max-time 30 "$BOT_URL/sante" || true)
+            if echo "$body" | grep -q '"statut":"connecté"'; then
+              echo "Bot connecté à Discord : $body"
+              echo "### Bot connecté à Discord ✅" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Tentative $i/20 : ${body:-pas encore de réponse}"
+            sleep 15
+          done
+          echo "::warning::Le bot ne répond pas encore. Consultez $BOT_URL/sante dans quelques minutes, et les journaux : Workers & Pages → make-your-server-bot → Logs."

@@ -1,0 +1,390 @@
+import { BRAND, PERMS, adminPerms, announcement, forum, moderatorPerms, own, privateTo, readOnly, text, voice, type TemplateDefinition } from "./helpers";
+
+const STAFF = ["admin", "moderateur"];
+
+export const gaming: TemplateDefinition = {
+  slug: "gaming",
+  name: "Team & communauté gaming",
+  tagline: "Trouver des coéquipiers, partager ses clips et organiser des tournois.",
+  description:
+    "Un serveur gaming pensé pour jouer ensemble : recherche de groupe en forum, salons par style de jeu choisis via l’onboarding, vocaux d’escouade limités, tournois avec annonces et résultats, mise en avant des streamers et une modération anti-arnaques.",
+  theme: "gaming",
+  size: "medium",
+  audience: "Teams, clans, guildes et communautés de joueurs (PC, console ou mobile) qui veulent s’organiser pour jouer, progresser et monter des tournois.",
+  highlights: [
+    "Forum « recherche de groupe » avec tags plateforme et mode de jeu",
+    "Onboarding : choix des jeux, de la plateforme et des notifications",
+    "Vocaux d’escouade avec limites de places (duo, squad, tournoi)",
+    "Espace tournois : annonces, résultats et rôle d’organisation dédié",
+    "AutoMod contre les arnaques aux skins, au Nitro et les invitations sauvages",
+  ],
+  popularity: 92,
+  spec: {
+    version: 1,
+    meta: {
+      name: "Team & communauté gaming",
+      description: "Serveur gaming : recherche de groupe, salons par jeu, clips, tournois et streamers.",
+      theme: "gaming",
+      size: "medium",
+      tone: "dynamique, tutoiement",
+      audience: "Joueurs PC, console et mobile",
+      accentColor: 0x6c8cff,
+    },
+    settings: {
+      verificationLevel: "medium",
+      explicitContentFilter: "all_members",
+      defaultNotifications: "only_mentions",
+      community: true,
+      description: "Communauté gaming francophone : trouve ta squad, partage tes clips, participe aux tournois.",
+      systemChannelId: "bienvenue",
+      rulesChannelId: "reglement",
+      publicUpdatesChannelId: "maj-discord",
+      safetyAlertsChannelId: "alertes",
+      afkChannelId: "afk",
+      afkTimeout: 900,
+      suppressJoinNotifications: true,
+      suppressSetupTips: true,
+    },
+    everyone: { permissions: PERMS.member },
+    roles: [
+      { id: "fondateur", name: "👑 Fondateur", color: 0xf2c14e, hoist: true, permissions: adminPerms(), staff: true, description: "Fondateurs de la team (le propriétaire du serveur garde tous les droits)." },
+      { id: "admin", name: "🛠️ Administration", color: 0xe5534b, hoist: true, mentionable: true, permissions: adminPerms(), staff: true, description: "Gère le serveur, les rôles et les partenariats." },
+      { id: "moderateur", name: "🛡️ Modération", color: BRAND.blue, hoist: true, mentionable: true, permissions: moderatorPerms(), staff: true, description: "Veille au fair-play, traite les tickets et les signalements." },
+      { id: "orga", name: "🏆 Orga tournois", color: 0xf28c38, hoist: true, mentionable: true, permissions: [...PERMS.member, "MANAGE_EVENTS", "PIN_MESSAGES", "MOVE_MEMBERS"], description: "Organise les tournois, publie les annonces et les résultats." },
+      { id: "streamer", name: "📺 Streamer", color: 0x9146ff, hoist: true, permissions: PERMS.member, description: "Membre qui stream régulièrement, attribué par l’équipe. Peut annoncer ses lives." },
+      { id: "fps", name: "🔫 FPS & Battle royale", selfAssignable: true, description: "Shooters, battle royale, jeux compétitifs." },
+      { id: "mmo", name: "🗡️ MMO & RPG", selfAssignable: true, description: "Jeux de rôle, MMO, aventures au long cours." },
+      { id: "coop", name: "🤝 Coop & party games", selfAssignable: true, description: "Survie, coop, jeux entre amis." },
+      { id: "pc", name: "🖥️ PC", selfAssignable: true, description: "Joue sur PC." },
+      { id: "console", name: "🎮 Console", selfAssignable: true, description: "Joue sur PlayStation, Xbox ou Switch." },
+      { id: "mobile", name: "📱 Mobile", selfAssignable: true, description: "Joue sur mobile." },
+      { id: "notif-tournois", name: "🏆 Notif tournois", selfAssignable: true, description: "Prévenu à l’ouverture des inscriptions." },
+      { id: "notif-annonces", name: "🔔 Notif annonces", selfAssignable: true, description: "Prévenu des annonces importantes." },
+      { id: "notif-lives", name: "📺 Notif lives", selfAssignable: true, description: "Prévenu quand un streamer de la team lance un live." },
+    ],
+    categories: [
+      {
+        id: "cat-accueil",
+        name: "📌 Accueil",
+        overwrites: readOnly(["admin"]),
+        channels: [
+          text("bienvenue", "👋・bienvenue", "Les nouveaux joueurs arrivent ici. Passe dire GG dans #général !", { purpose: "welcome" }),
+          text("reglement", "📜・règlement", "Les règles du serveur et du fair-play.", { purpose: "rules" }),
+          announcement("annonces", "📣・annonces", "Infos importantes de la team.", { purpose: "announcements" }),
+          text("roles", "🎭・rôles", "Choisis tes jeux, ta plateforme et tes notifications.", { purpose: "roles" }),
+          text("faq", "❓・faq", "Les réponses aux questions fréquentes.", { purpose: "faq" }),
+          text("support", "🎫・support", "Un souci avec un joueur ou une question pour l’équipe ? Ouvre un ticket privé.", { purpose: "support" }),
+        ],
+      },
+      {
+        id: "cat-commu",
+        name: "💬 Communauté",
+        overwrites: [],
+        channels: [
+          text("general", "💬・général", "Discussions libres entre joueurs.", { purpose: "general" }),
+          text("presentations", "🙋・présentations", "Pseudo, jeux, rang, plateforme : présente-toi !", { slowmode: 300, purpose: "introductions" }),
+          forum("lfg", "🔎・recherche-de-groupe", "Crée une publication pour trouver des coéquipiers : jeu, mode, rang, horaires et plateforme. Supprime-la ou marque-la « Complet » quand ta squad est prête.", [
+            { name: "PC", emoji: "🖥️" },
+            { name: "Console", emoji: "🎮" },
+            { name: "Mobile", emoji: "📱" },
+            { name: "Classé", emoji: "🏅" },
+            { name: "Détente", emoji: "😎" },
+            { name: "Complet", emoji: "✅", moderated: true },
+          ], { defaultReaction: "🎮" }),
+          text("clips", "🎬・clips", "Tes meilleures actions, fails et highlights (lien ou vidéo).", { slowmode: 30, purpose: "media" }),
+          text("hors-sujet", "🎲・hors-sujet", "Tout ce qui ne parle pas de jeu."),
+          text("suggestions", "💡・suggestions", "Propose une idée (tournoi, salon, jeu) avec le bouton : elle sera soumise au vote.", {
+            purpose: "suggestions",
+            ...own([{ target: "everyone", allow: ["ADD_REACTIONS", "SEND_MESSAGES_IN_THREADS"], deny: ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }]),
+          }),
+        ],
+      },
+      {
+        id: "cat-jeux",
+        name: "🕹️ Par style de jeu",
+        overwrites: [],
+        channels: [
+          text("salon-fps", "🔫・fps-battle-royale", "Shooters et battle royale : stratégies, mises à jour, recherche de duo."),
+          text("salon-mmo", "🗡️・mmo-rpg", "Guildes, builds, raids et quêtes."),
+          text("salon-coop", "🤝・coop-party-games", "Survie, coop, jeux entre amis : on s’organise ici."),
+        ],
+      },
+      {
+        id: "cat-tournois",
+        name: "🏆 Tournois & streams",
+        overwrites: [],
+        channels: [
+          announcement("tournois", "🏆・tournois", "Annonces, règlements et inscriptions aux tournois.", { purpose: "events", ...own(readOnly(["orga", "admin"])) }),
+          text("resultats", "🥇・résultats", "Brackets, scores et palmarès.", own(readOnly(["orga", "admin"]))),
+          text("lives", "📺・lives", "Les streamers de la team annoncent leurs lives ici.", own(readOnly(["streamer", "admin"]))),
+        ],
+      },
+      {
+        id: "cat-vocaux",
+        name: "🔊 Vocaux",
+        overwrites: [],
+        channels: [
+          voice("vocal-detente", "🛋️ Détente"),
+          voice("vocal-duo", "👥 Duo", { userLimit: 2 }),
+          voice("vocal-squad-1", "🎯 Squad 1", { userLimit: 5 }),
+          voice("vocal-squad-2", "🎯 Squad 2", { userLimit: 5 }),
+          voice("vocal-tournoi", "🏆 Tournoi", { userLimit: 10 }),
+          voice("afk", "🌙 AFK", { purpose: "afk" }),
+        ],
+      },
+      {
+        id: "cat-staff",
+        name: "🛡️ Équipe",
+        overwrites: privateTo(["admin", "moderateur", "orga"]),
+        channels: [
+          text("staff-discussion", "🗂️・staff-discussion", "Coordination de l’équipe et des tournois. Rien ne sort d’ici.", { purpose: "staff" }),
+          text("maj-discord", "📢・mises-à-jour-discord", "Messages officiels de Discord destinés aux modérateurs.", { purpose: "updates", ...own(privateTo(STAFF)) }),
+          text("alertes", "🚨・alertes-automod", "Alertes AutoMod et alertes de sécurité.", { purpose: "mod-logs", ...own(privateTo(STAFF)) }),
+          text("logs", "📋・logs-arrivées", "Arrivées et départs des membres (bot Make Your Server).", { purpose: "logs", ...own(privateTo(STAFF)) }),
+          voice("staff-vocal", "🔇 Réunion staff"),
+        ],
+      },
+    ],
+    messages: [
+      {
+        id: "msg-bienvenue",
+        channelId: "bienvenue",
+        pin: true,
+        embeds: [
+          {
+            title: "Bienvenue sur {server} ! 🎮",
+            description:
+              "Ici on joue ensemble, on progresse et on s’affronte dans la bonne humeur.\n\n**Pour démarrer :**\n1. Lis le {#reglement}\n2. Choisis tes jeux et ta plateforme dans {#roles}\n3. Présente-toi dans {#presentations}\n4. Trouve ta squad dans {#lfg}",
+            fields: [
+              { name: "Tournois", value: "Les inscriptions sont annoncées dans {#tournois}. Prends le rôle {@notif-tournois} pour ne rien rater." },
+              { name: "Un problème ?", value: "Ouvre un ticket privé dans {#support} : {@moderateur} s’en occupe." },
+            ],
+            footer: "GL HF !",
+          },
+        ],
+      },
+      {
+        id: "msg-reglement",
+        channelId: "reglement",
+        pin: true,
+        embeds: [
+          {
+            title: "📜 Règlement du serveur",
+            description: "Ces règles s’ajoutent aux [Conditions d’utilisation](https://discord.com/terms) et aux [Règles de la communauté](https://discord.com/guidelines) de Discord.",
+            fields: [
+              { name: "1. Fair-play", value: "Pas de toxicité, de rage ni de moqueries envers les joueurs moins expérimentés. On gagne et on perd ensemble." },
+              { name: "2. Zéro triche", value: "Aucune promotion de cheats, de comptes boostés, de revente de comptes ou d’exploits. Sanction immédiate." },
+              { name: "3. Respect en vocal", value: "Pas de cris, de soundboard abusive ni de musique sans accord. Coupe ton micro si tu es dans un environnement bruyant." },
+              { name: "4. Recherche de groupe", value: "Une publication par recherche dans {#lfg}, avec jeu, rang et horaires. Ferme-la quand ta squad est complète." },
+              { name: "5. Pas de publicité", value: "Pas d’invitation vers d’autres serveurs ni d’autopromo hors {#lives} (réservé aux streamers validés)." },
+              { name: "6. Contenu approprié", value: "Clips et images sans contenu choquant. Les spoilers d’histoire sont masqués avec ||texte||." },
+              { name: "7. Arnaques", value: "Ne clique jamais sur un lien de « skins gratuits » ou de « Nitro offert ». Signale-le à l’équipe." },
+              { name: "8. Sanctions", value: "De l’avertissement au bannissement selon la gravité. Pour contester, ouvre un ticket dans {#support}." },
+            ],
+            footer: "En restant sur le serveur, tu acceptes ce règlement.",
+          },
+        ],
+      },
+      {
+        id: "msg-roles-jeux",
+        channelId: "roles",
+        embeds: [{ title: "🕹️ Tes styles de jeu", description: "Clique pour prendre ou retirer un rôle : il met en avant les salons correspondants et permet aux autres de te trouver." }],
+        buttons: [
+          { action: "role-toggle", roleId: "fps", label: "FPS & Battle royale", emoji: "🔫" },
+          { action: "role-toggle", roleId: "mmo", label: "MMO & RPG", emoji: "🗡️" },
+          { action: "role-toggle", roleId: "coop", label: "Coop & party games", emoji: "🤝" },
+        ],
+      },
+      {
+        id: "msg-roles-plateforme",
+        channelId: "roles",
+        embeds: [{ title: "🖥️ Ta plateforme", description: "Indique sur quoi tu joues : pratique pour monter des groupes compatibles." }],
+        buttons: [
+          { action: "role-toggle", roleId: "pc", label: "PC", emoji: "🖥️" },
+          { action: "role-toggle", roleId: "console", label: "Console", emoji: "🎮" },
+          { action: "role-toggle", roleId: "mobile", label: "Mobile", emoji: "📱" },
+        ],
+      },
+      {
+        id: "msg-roles-notifs",
+        channelId: "roles",
+        embeds: [{ title: "🔔 Tes notifications", description: "Choisis ce pour quoi tu veux être mentionné." }],
+        buttons: [
+          { action: "role-toggle", roleId: "notif-tournois", label: "Tournois", emoji: "🏆", style: "primary" },
+          { action: "role-toggle", roleId: "notif-annonces", label: "Annonces", emoji: "🔔", style: "primary" },
+          { action: "role-toggle", roleId: "notif-lives", label: "Lives", emoji: "📺", style: "primary" },
+        ],
+      },
+      {
+        id: "msg-faq",
+        channelId: "faq",
+        pin: true,
+        embeds: [
+          {
+            title: "❓ Questions fréquentes",
+            fields: [
+              { name: "Comment trouver des coéquipiers ?", value: "Crée une publication dans {#lfg} avec le jeu, ton rang, tes horaires et le tag de ta plateforme." },
+              { name: "Comment participer à un tournoi ?", value: "Suis {#tournois} : chaque annonce précise le format, les dates et le lien d’inscription." },
+              { name: "Comment devenir Streamer ?", value: "Ouvre un ticket dans {#support} avec ta chaîne. Le rôle {@streamer} permet d’annoncer tes lives dans {#lives}." },
+              { name: "Je ne vois pas certains salons", value: "Choisis tes styles de jeu dans {#roles} ou via « Parcourir les salons »." },
+              { name: "On peut proposer un jeu ou un tournoi ?", value: "Oui, utilise le bouton dans {#suggestions}." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "msg-support",
+        channelId: "support",
+        embeds: [{ title: "🎫 Besoin de l’équipe ?", description: "Signalement d’un joueur, contestation, demande de rôle Streamer… Clique sur le bouton : un fil privé s’ouvre entre toi et l’équipe." }],
+        buttons: [{ action: "ticket-open", label: "Ouvrir un ticket", emoji: "🎫", style: "primary" }],
+      },
+      {
+        id: "msg-suggestions",
+        channelId: "suggestions",
+        embeds: [{ title: "💡 Une idée pour la team ?", description: "Nouveau jeu, format de tournoi, salon manquant ? Clique sur le bouton : ton idée sera publiée ici et soumise au vote 👍 / 👎." }],
+        buttons: [{ action: "suggestion-open", label: "Proposer une idée", emoji: "💡" }],
+      },
+      {
+        id: "msg-tournois",
+        channelId: "tournois",
+        pin: true,
+        embeds: [
+          {
+            title: "🏆 Fonctionnement des tournois",
+            description: "Chaque tournoi est annoncé ici par {@orga} avec son format, ses dates et ses règles.",
+            fields: [
+              { name: "Inscription", value: "Suivez le lien ou les consignes de l’annonce. Les équipes doivent être complètes avant la clôture." },
+              { name: "Le jour J", value: "Rendez-vous dans le vocal 🏆 Tournoi 15 minutes avant le début pour le check-in." },
+              { name: "Fair-play", value: "Toute triche ou comportement toxique entraîne la disqualification de l’équipe." },
+              { name: "Résultats", value: "Brackets et palmarès sont publiés dans {#resultats}." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "msg-staff",
+        channelId: "staff-discussion",
+        pin: true,
+        embeds: [
+          {
+            title: "🗂️ Mémo de l’équipe",
+            fields: [
+              { name: "Échelle des sanctions", value: "1. Rappel à l’ordre\n2. Avertissement\n3. Exclusion temporaire (1 h à 1 semaine)\n4. Bannissement (triche, arnaque, harcèlement)" },
+              { name: "Tickets", value: "Réponse sous 24 h. Les demandes de rôle Streamer sont validées par {@admin}." },
+              { name: "Tournois", value: "Annonce au moins une semaine avant. Désignez un arbitre par tournoi." },
+              { name: "AutoMod et logs", value: "Alertes dans {#alertes}, arrivées et départs dans {#logs}." },
+            ],
+          },
+        ],
+      },
+    ],
+    automod: [
+      { id: "am-spam", name: "Anti-spam", trigger: { type: "spam" }, actions: [{ type: "block" }, { type: "alert", channelId: "alertes" }] },
+      {
+        id: "am-mentions",
+        name: "Anti-raid de mentions",
+        trigger: { type: "mention_spam", mentionLimit: 6, raidProtection: true },
+        actions: [{ type: "block", customMessage: "Trop de mentions dans un seul message." }, { type: "alert", channelId: "alertes" }, { type: "timeout", durationSeconds: 600 }],
+        exemptRoles: STAFF,
+      },
+      {
+        id: "am-presets",
+        name: "Insultes graves et contenu sexuel",
+        trigger: { type: "keyword_preset", presets: ["slurs", "sexual_content"] },
+        actions: [{ type: "block", customMessage: "Ce message enfreint le règlement." }, { type: "alert", channelId: "alertes" }],
+      },
+      {
+        id: "am-arnaques",
+        name: "Arnaques, triche et invitations",
+        trigger: {
+          type: "keyword",
+          keywords: ["*skins gratuits*", "*free skins*", "*nitro gratuit*", "*free nitro*", "*discord.gift*", "*steam gift*", "*vends compte*", "*compte boosté*"],
+          regexPatterns: ["(discord\\.gg|discord(app)?\\.com/invite)/[a-zA-Z0-9-]+"],
+        },
+        actions: [{ type: "block", customMessage: "Liens suspects, triche et invitations sont interdits." }, { type: "alert", channelId: "alertes" }],
+        exemptRoles: STAFF,
+      },
+    ],
+    onboarding: {
+      enabled: true,
+      mode: "default",
+      defaultChannelIds: ["bienvenue", "reglement", "annonces", "general", "presentations", "lfg", "clips", "hors-sujet", "tournois"],
+      prompts: [
+        {
+          id: "q-jeux",
+          title: "À quoi joues-tu ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-fps", title: "FPS & Battle royale", emoji: "🔫", roleIds: ["fps"], channelIds: ["salon-fps"] },
+            { id: "o-mmo", title: "MMO & RPG", emoji: "🗡️", roleIds: ["mmo"], channelIds: ["salon-mmo"] },
+            { id: "o-coop", title: "Coop & party games", emoji: "🤝", roleIds: ["coop"], channelIds: ["salon-coop"] },
+          ],
+        },
+        {
+          id: "q-plateforme",
+          title: "Sur quelle plateforme joues-tu ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-pc", title: "PC", emoji: "🖥️", roleIds: ["pc"], channelIds: [] },
+            { id: "o-console", title: "Console", emoji: "🎮", roleIds: ["console"], channelIds: [] },
+            { id: "o-mobile", title: "Mobile", emoji: "📱", roleIds: ["mobile"], channelIds: [] },
+          ],
+        },
+        {
+          id: "q-notifs",
+          title: "Quelles notifications veux-tu recevoir ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-notif-tournois", title: "Tournois", emoji: "🏆", roleIds: ["notif-tournois"], channelIds: ["resultats"] },
+            { id: "o-notif-annonces", title: "Annonces importantes", emoji: "🔔", roleIds: ["notif-annonces"], channelIds: [] },
+            { id: "o-notif-lives", title: "Lives des streamers", emoji: "📺", roleIds: ["notif-lives"], channelIds: ["lives"] },
+          ],
+        },
+      ],
+    },
+    welcomeScreen: {
+      enabled: true,
+      description: "Trouve ta squad, partage tes clips et participe aux tournois de la communauté.",
+      channels: [
+        { channelId: "reglement", description: "Lire le règlement", emoji: "📜" },
+        { channelId: "lfg", description: "Trouver des coéquipiers", emoji: "🔎" },
+        { channelId: "general", description: "Discuter avec les joueurs", emoji: "💬" },
+        { channelId: "tournois", description: "Voir les prochains tournois", emoji: "🏆" },
+        { channelId: "clips", description: "Partager tes clips", emoji: "🎬" },
+      ],
+    },
+    serverGuide: {
+      welcomeMessage: "Bienvenue dans la team ! Choisis tes jeux, trouve des coéquipiers dans la recherche de groupe et rejoins-nous en vocal.",
+      newMemberActions: [
+        { title: "Lire le règlement", channelId: "reglement", description: "Fair-play et zéro triche." },
+        { title: "Se présenter", channelId: "presentations", description: "Pseudo, jeux et plateforme." },
+        { title: "Trouver une squad", channelId: "lfg", description: "Publie ta recherche de groupe." },
+      ],
+      resourceChannels: [
+        { title: "Questions fréquentes", channelId: "faq" },
+        { title: "Choisir ses rôles", channelId: "roles" },
+        { title: "Tournois", channelId: "tournois" },
+        { title: "Contacter l’équipe", channelId: "support" },
+      ],
+    },
+    features: {
+      welcome: {
+        enabled: true,
+        channelId: "bienvenue",
+        message: "GG {user}, bienvenue sur **{server}** ! Tu es notre {memberCount}e joueur. Lis le {#reglement} puis trouve ta squad dans {#lfg} 🎮",
+      },
+      joinLogs: { enabled: true, channelId: "logs" },
+      tickets: { enabled: true, channelId: "support", staffRoleIds: ["moderateur", "admin"], intro: "Merci pour ton message ! Explique la situation (pseudo du joueur concerné, captures si possible) : seule l’équipe lit ce fil." },
+      suggestions: { enabled: true, channelId: "suggestions" },
+    },
+  },
+};
