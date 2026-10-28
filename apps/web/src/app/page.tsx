@@ -13,6 +13,7 @@ import { AnimatedNumber, Marquee, Reveal, SplitText, Stagger, StaggerItem, Tilt 
 import { ButtonLink, colorHex } from "@/components/ui";
 import { ChannelIcon, IconArrowRight, IconBot, IconCheck, IconHand, IconSave, IconShield, IconSparkle, IconCube } from "@/components/icons";
 import { searchTemplates } from "@/lib/data";
+import { AiDesignDemo } from "@/components/premium/premium-demos";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +29,10 @@ const AFTER = [
 ];
 
 export default async function Home() {
-  const templates = (await searchTemplates({ sort: "popular" }).catch(() => [])).slice(0, 8);
-  const totalChannels = templates.reduce((n, t) => n + t.stats.channels, 0);
+  const all = await searchTemplates({ sort: "popular" }).catch(() => []);
+  const templates = all.slice(0, 10);
+  const totalChannels = all.reduce((n, t) => n + t.stats.channels, 0);
+  const community = all.filter((t) => !t.official);
   return (
     <>
       <SiteHeader />
@@ -37,7 +40,7 @@ export default async function Home() {
         {/* ------------------------------ Héros ------------------------------ */}
         <section className="relative overflow-hidden">
           <div className="blueprint blueprint-fade pointer-events-none absolute inset-0" aria-hidden />
-          <div className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-blue/10 blur-3xl" aria-hidden />
+          <div className="aurora" aria-hidden />
           <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pt-14 pb-24 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:pt-20">
             <div>
               <Reveal y={10}>
@@ -97,7 +100,7 @@ export default async function Home() {
         <section className="border-y border-line bg-night/50">
           <Stagger className="mx-auto grid max-w-7xl grid-cols-2 gap-px px-4 sm:px-6 md:grid-cols-4">
             {[
-              [templates.length || 8, "templates complets et gratuits"],
+              [all.length || 13, "templates complets et gratuits"],
               [totalChannels || 200, "salons déjà rédigés et organisés"],
               [0, "doublon en cas de relance"],
               [100, "% des opérations visibles en direct"],
@@ -179,6 +182,44 @@ export default async function Home() {
           </section>
         )}
 
+        {/* ----------------------------- Communauté ---------------------------- */}
+        <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.1fr]">
+            <Reveal>
+              <p className="eyebrow">Bibliothèque communautaire</p>
+              <h2 className="mt-3 text-3xl font-bold md:text-5xl">Votre serveur peut inspirer les autres.</h2>
+              <p className="mt-4 max-w-xl text-ink">
+                Publiez un projet ou la structure d’une sauvegarde en un clic. Après relecture par l’équipe, il rejoint la bibliothèque avec votre pseudo, et vous suivez ses vues et ses installations.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <ButtonLink href="/publications">
+                  Publier mon serveur <IconArrowRight size={16} />
+                </ButtonLink>
+                <ButtonLink href="/templates" variant="secondary">
+                  Explorer {community.length > 0 ? `les ${community.length} créations` : "la bibliothèque"}
+                </ButtonLink>
+              </div>
+            </Reveal>
+            <Stagger className="grid gap-3" gap={0.12}>
+              {[
+                { n: "1", title: "Vous publiez", text: "Depuis l’éditeur ou une sauvegarde : seule la structure est partagée, jamais vos messages." },
+                { n: "2", title: "L’équipe relit", text: "Chaque proposition est vérifiée : contenu, permissions, respect des règles de Discord." },
+                { n: "3", title: "La communauté l’installe", text: "Votre template apparaît avec votre pseudo. Vues et installations sont suivies en direct." },
+              ].map((c) => (
+                <StaggerItem key={c.n}>
+                  <div className="panel flex items-start gap-4 p-5 transition-colors hover:border-edge">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent font-display text-lg font-bold text-on-accent">{c.n}</span>
+                    <div>
+                      <p className="font-display text-lg font-bold">{c.title}</p>
+                      <p className="mt-1 text-sm text-ink">{c.text}</p>
+                    </div>
+                  </div>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          </div>
+        </section>
+
         {/* --------------------------- Voir comme ---------------------------- */}
         <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
           <Reveal>
@@ -228,6 +269,39 @@ export default async function Home() {
             <p className="mt-5 text-ink">
               Si le bot redémarre, l’installation reprend là où elle s’était arrêtée, sans créer de doublon. Un échec partiel est affiché comme tel : vous corrigez, vous relancez, seules les étapes manquantes sont rejouées.
             </p>
+          </Reveal>
+        </section>
+
+        {/* ------------------------------ Premium ------------------------------ */}
+        <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6">
+          <Reveal>
+            <div className="relative grid items-center gap-10 overflow-hidden rounded-[28px] border border-edge bg-[linear-gradient(135deg,rgb(12_28_60),rgb(7_20_45))] p-8 md:p-12 lg:grid-cols-[1fr_1fr]">
+              <div aria-hidden className="pointer-events-none absolute -top-32 -left-24 size-96 rounded-full bg-[radial-gradient(circle,rgb(167_189_255/0.18),transparent_65%)]" />
+              <div className="relative">
+                <p className="eyebrow flex items-center gap-2">
+                  <IconSparkle size={14} /> Premium
+                </p>
+                <h2 className="mt-3 text-3xl font-bold md:text-5xl">
+                  Décrivez-le. <span className="text-gradient">L’IA le construit.</span>
+                </h2>
+                <p className="mt-4 max-w-lg text-ink">
+                  Une phrase suffit pour obtenir un serveur complet et sur mesure, puis des retouches en langage naturel. Avec des sauvegardes programmées pour ne jamais rien perdre.
+                </p>
+                <ul className="mt-6 space-y-2 text-sm text-ink">
+                  {["Conception complète par IA, relue avant installation", "Modifications ciblées, à accepter une par une", "Sauvegardes programmées et restauration sélective"].map((t) => (
+                    <li key={t} className="flex items-start gap-2">
+                      <IconCheck size={16} className="mt-0.5 shrink-0 text-peri" /> {t}
+                    </li>
+                  ))}
+                </ul>
+                <ButtonLink href="/abonnement" variant="secondary" className="mt-8">
+                  Découvrir le Premium <IconArrowRight size={16} />
+                </ButtonLink>
+              </div>
+              <div className="relative h-[300px] rounded-2xl border border-line bg-surface/80 p-4 backdrop-blur">
+                <AiDesignDemo />
+              </div>
+            </div>
           </Reveal>
         </section>
 

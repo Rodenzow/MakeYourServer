@@ -5,6 +5,7 @@ import { ButtonLink } from "./ui";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
 import { IconArrowRight } from "./icons";
+import { ScrollProgress } from "./scroll-progress";
 
 const NAV = [
   { href: "/templates", label: "Templates" },
@@ -46,8 +47,9 @@ export async function SiteHeader() {
             </>
           )}
         </div>
-        <MobileNav items={[...NAV, ...(user ? [{ href: "/tableau-de-bord", label: "Mon espace" }] : [{ href: "/connexion", label: "Se connecter" }]), ...(user?.isAdmin ? [{ href: "/admin", label: "Administration" }] : [])]} />
+        <MobileNav items={[...NAV, ...(user ? [{ href: "/tableau-de-bord", label: "Mon espace" }, { href: "/publications", label: "Mes publications" }] : [{ href: "/connexion", label: "Se connecter" }]), ...(user?.isAdmin ? [{ href: "/admin", label: "Administration" }] : [])]} />
       </div>
+      <ScrollProgress />
     </header>
   );
 }

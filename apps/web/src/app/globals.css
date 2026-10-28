@@ -234,10 +234,54 @@
     z-index: 1;
     pointer-events: none;
   }
+  /* Fond « aurore » : halos colorés qui dérivent lentement (désactivé si mouvement réduit). */
+  .aurora {
+    position: absolute;
+    inset: -20% -10% auto;
+    height: 640px;
+    pointer-events: none;
+    filter: blur(70px);
+    opacity: 0.55;
+  }
+  .aurora::before,
+  .aurora::after {
+    content: "";
+    position: absolute;
+    border-radius: 9999px;
+    animation: aurora-drift 18s ease-in-out infinite alternate;
+  }
+  .aurora::before {
+    width: 46%;
+    height: 70%;
+    left: 18%;
+    top: 10%;
+    background: radial-gradient(circle, rgb(131 168 243 / 0.55), transparent 65%);
+  }
+  .aurora::after {
+    width: 40%;
+    height: 60%;
+    right: 12%;
+    top: 0;
+    background: radial-gradient(circle, rgb(167 120 255 / 0.35), transparent 65%);
+    animation-duration: 23s;
+    animation-direction: alternate-reverse;
+  }
   .skeleton {
     background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-mist) 50%, var(--color-surface) 100%);
     background-size: 200% 100%;
     animation: var(--animate-shimmer);
+  }
+}
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(8%, 6%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-6%, -4%, 0) scale(0.95);
   }
 }
 
