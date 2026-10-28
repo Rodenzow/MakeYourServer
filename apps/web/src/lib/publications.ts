@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { THEMES, prepareForPublication, slugify, validateSpec, type ServerSpec } from "@mys/core";
+import { THEMES, allChannels, prepareForPublication, slugify, validateSpec, type ServerSpec } from "@mys/core";
 import { detectFeatures } from "@mys/core/templates";
 import { and, audit, count, desc, eq, getDb, inArray, isNull, templateReports, templates } from "@mys/db";
 import { HttpError } from "./api";
@@ -54,6 +54,9 @@ export async function submitPublication(
   if (existing) throw new HttpError(409, "Cette proposition est déjà en attente de relecture.");
 
   const spec = prepareForPublication(source.spec, body.name);
+  // La bibliothèque est ouverte à tous les publics : aucun salon soumis à une limite d’âge.
+  const nsfw = allChannels(spec).filter((c) => c.channel.nsfw);
+  if (nsfw.length) throw new HttpError(400, `La bibliothèque n’accepte pas les salons soumis à une limite d’âge (${nsfw.map((c) => c.channel.name).slice(0, 3).join(", ")}). Retirez-les avant de publier.`, "nsfw");
   spec.meta.theme = body.theme;
   spec.meta.description = body.tagline;
   const v = validateSpec(spec);

@@ -49,11 +49,16 @@ export async function createCheckout(user: { id: string; discordId: string }, pl
     subscription_data: { metadata: { userId: user.id, planKey, discordId: user.discordId } },
     allow_promotion_codes: true,
     locale: "fr",
+    custom_text: {
+      submit: {
+        message: "En vous abonnant, vous demandez l’accès immédiat au Premium et renoncez à votre droit de rétractation de 14 jours. Résiliable à tout moment depuis votre espace.",
+      },
+    },
     success_url: `${env.appUrl}/abonnement?statut=succes`,
     cancel_url: `${env.appUrl}/abonnement?statut=annule`,
   });
   if (!session.url) throw new HttpError(502, "Stripe n’a pas renvoyé de page de paiement.");
-  await audit({ actorUserId: user.id, actorType: "user", action: "billing.checkout", metadata: { planKey } });
+  await audit({ actorUserId: user.id, actorType: "user", action: "billing.checkout", metadata: { planKey, termsAccepted: true, withdrawalWaived: true } });
   return session.url;
 }
 

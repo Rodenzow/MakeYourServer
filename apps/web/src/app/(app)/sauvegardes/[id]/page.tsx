@@ -61,6 +61,12 @@ export default async function BackupPage({ params, searchParams }: { params: Pro
       <Notice tone="blue" className="mb-6">
         {BACKUP_SCOPE_NOTE}
       </Notice>
+      {(b.summary.messagesHidden ?? 0) > 0 && (
+        <Notice tone="warning" title={`${b.summary.messagesHidden} message(s) non exporté(s)`} className="mb-6">
+          Discord a masqué leur contenu : l’application n’a pas l’intention privilégiée « Message Content ». Activez-la dans le portail développeur (Bot → Privileged Gateway Intents), puis refaites la
+          sauvegarde. Au-delà de 100 serveurs, Discord doit d’abord approuver cette intention.
+        </Notice>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <section>
