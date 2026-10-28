@@ -20,6 +20,14 @@ interface Env {
   DISCORD_DEV_GUILD_ID?: string;
 }
 
+const CONFIG_KEY = "configFingerprint";
+
+async function fingerprint(values: Record<string, string>): Promise<string> {
+  const data = new TextEncoder().encode(JSON.stringify(Object.entries(values).sort(([a], [b]) => a.localeCompare(b))));
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 type NativeContainer = NonNullable<DurableObjectState["container"]>;
 
 /** Nom de l’image dans wrangler.jsonc (containers[].images). */
@@ -65,6 +73,22 @@ export class BotContainer extends Container<Env> {
     };
   }
 
+  /**
+   * Redémarre le bot si sa configuration (secrets, adresse du site…) a changé depuis
+   * son démarrage : sans cela, un conteneur déjà lancé garderait les anciennes valeurs.
+   */
+  async refreshIfConfigChanged(): Promise<boolean> {
+    const digest = await fingerprint(this.envVars ?? {});
+    if ((await this.ctx.storage.get<string>(CONFIG_KEY)) === digest) return false;
+    await this.ctx.storage.put(CONFIG_KEY, digest);
+    if (!this.ctx.container?.running) return false;
+    console.log("Configuration du bot modifiée : redémarrage.");
+    await this.stop("SIGTERM");
+    for (let i = 0; i < 30 && this.ctx.container?.running; i++) await new Promise((r) => setTimeout(r, 1000));
+    if (this.ctx.container?.running) await this.destroy();
+    return true;
+  }
+
   override onStart() {
     console.log("Conteneur du bot démarré.");
   }
@@ -85,15 +109,21 @@ export default {
   /** /sante : état du bot (démarre le conteneur si besoin). Aucune donnée sensible exposée. */
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === "/sante") return bot(env).fetch(new Request("http://bot/sante"));
+    if (url.pathname === "/sante") {
+      const stub = bot(env);
+      await stub.refreshIfConfigChanged();
+      return stub.fetch(new Request("http://bot/sante"));
+    }
     return new Response("Make Your Server — hôte du bot Discord. État : /sante", { headers: { "content-type": "text/plain; charset=utf-8" } });
   },
 
-  /** Toutes les 5 minutes : démarre le bot s’il est arrêté et le maintient éveillé. */
+  /** Toutes les 5 minutes : démarre le bot s’il est arrêté, le maintient éveillé et applique une nouvelle configuration. */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    const stub = bot(env);
     ctx.waitUntil(
-      bot(env)
-        .fetch(new Request("http://bot/sante"))
+      stub
+        .refreshIfConfigChanged()
+        .then(() => stub.fetch(new Request("http://bot/sante")))
         .then((r) => console.log(`Battement de cœur du bot : HTTP ${r.status}`))
         .catch((e) => console.error("Bot injoignable :", e)),
     );
