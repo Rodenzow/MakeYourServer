@@ -12,7 +12,7 @@ export const communaute: TemplateDefinition = {
   size: "medium",
   audience: "Groupes d’amis qui s’agrandissent, communautés francophones généralistes, serveurs de fans ou de quartier, de 20 à quelques milliers de membres.",
   highlights: [
-    "Onboarding Discord : les membres choisissent leurs centres d’intérêt et leurs notifications",
+    "Onboarding Discord : les membres choisissent leurs centres d’intérêt, leurs notifications et leur façon de participer",
     "Règlement, FAQ et message d’accueil déjà rédigés",
     "Tickets d’aide privés et boîte à suggestions avec boutons fonctionnels",
     "AutoMod : anti-spam, anti-raid de mentions, liens d’invitation et arnaques",
@@ -58,6 +58,9 @@ export const communaute: TemplateDefinition = {
       { id: "culture", name: "📚 Culture & séries", selfAssignable: true, description: "Films, séries, livres, mangas." },
       { id: "notif-annonces", name: "🔔 Notif annonces", selfAssignable: true, mentionable: false, description: "Mentionné lors des annonces importantes." },
       { id: "notif-events", name: "📅 Notif événements", selfAssignable: true, mentionable: false, description: "Mentionné au lancement des événements." },
+      { id: "partant-vocal", name: "🎙️ Partant pour le vocal", selfAssignable: true, description: "Mentionné quand quelqu’un lance une session vocale." },
+      { id: "entraideur", name: "🤝 Entraideur", selfAssignable: true, description: "Mentionné quand une question de #entraide attend une réponse." },
+      { id: "envie-animer", name: "🎤 Envie d’animer", selfAssignable: true, description: "Propose des quiz, soirées ou tournois : l’équipe d’animation peut te solliciter." },
     ],
     categories: [
       {
@@ -203,6 +206,16 @@ export const communaute: TemplateDefinition = {
         ],
       },
       {
+        id: "msg-roles-participation",
+        channelId: "roles",
+        embeds: [{ title: "🙌 Ta façon de participer", description: "Indique comment tu aimes t’impliquer : les autres membres et l’équipe sauront qui solliciter." }],
+        buttons: [
+          { action: "role-toggle", roleId: "partant-vocal", label: "Partant pour le vocal", emoji: "🎙️" },
+          { action: "role-toggle", roleId: "entraideur", label: "Aider les autres", emoji: "🤝" },
+          { action: "role-toggle", roleId: "envie-animer", label: "Animer des événements", emoji: "🎤" },
+        ],
+      },
+      {
         id: "msg-faq",
         channelId: "faq",
         pin: true,
@@ -322,7 +335,20 @@ export const communaute: TemplateDefinition = {
           inOnboarding: true,
           options: [
             { id: "o-notif-annonces", title: "Annonces importantes", emoji: "🔔", roleIds: ["notif-annonces"], channelIds: [] },
-            { id: "o-notif-events", title: "Lancement des événements", emoji: "📅", roleIds: ["notif-events"], channelIds: [] },
+            { id: "o-notif-events", title: "Lancement des événements", emoji: "📅", roleIds: ["notif-events"], channelIds: ["scene"] },
+          ],
+        },
+        {
+          id: "q-participation",
+          title: "Comment aimes-tu participer à la vie du serveur ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-vocal", title: "En vocal", description: "Être prévenu quand une session vocale se lance", emoji: "🎙️", roleIds: ["partant-vocal"], channelIds: ["vocal-detente"] },
+            { id: "o-entraide", title: "En aidant les autres", description: "Être mentionné quand une question attend une réponse", emoji: "🤝", roleIds: ["entraideur"], channelIds: ["entraide"] },
+            { id: "o-animer", title: "En animant des événements", description: "Proposer des quiz, soirées ou tournois à l’équipe", emoji: "🎤", roleIds: ["envie-animer"], channelIds: ["scene", "suggestions"] },
           ],
         },
       ],

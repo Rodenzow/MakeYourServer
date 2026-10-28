@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SIZE_LABELS, THEME_LABELS, allChannels, specStats, type ServerSpec } from "@mys/core";
 import { FEATURE_TAGS } from "@mys/core/templates";
-import { getPublishedTemplate } from "@/lib/data";
+import { getPublishedTemplate, getTemplateAuthor } from "@/lib/data";
+import { ViewTracker } from "@/components/templates/view-tracker";
+import { ReportButton } from "@/components/templates/report-button";
 import { getCurrentUser } from "@/lib/session";
 import { SpecPreview, RolesOverview } from "@/components/spec/spec-preview";
 import { UseTemplateButton } from "@/components/templates/use-template-button";
@@ -22,7 +24,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const t = await getPublishedTemplate(slug);
   if (!t) notFound();
-  const user = await getCurrentUser();
+  const [user, author] = await Promise.all([getCurrentUser(), getTemplateAuthor(t)]);
   const spec = t.spec as ServerSpec;
   const s = specStats(spec);
   return (
@@ -40,6 +42,31 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           <h1 className="mt-3 text-4xl font-extrabold md:text-5xl">{t.name}</h1>
           <p className="mt-3 text-lg text-ink">{t.tagline}</p>
           <p className="mt-3 max-w-2xl text-muted">{t.description}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+            {t.official ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="grid size-6 place-items-center rounded-full bg-accent font-display text-xs font-bold text-on-accent">M</span>
+                Par l’équipe Make Your Server
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                {author?.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={author.avatarUrl} alt="" width={24} height={24} className="size-6 rounded-full" />
+                ) : (
+                  <span className="grid size-6 place-items-center rounded-full bg-mist text-xs">?</span>
+                )}
+                Par <strong className="text-fg">{author?.name ?? "un membre de la communauté"}</strong>
+              </span>
+            )}
+            <span>
+              <strong className="text-fg">{t.viewCount.toLocaleString("fr-FR")}</strong> vue{t.viewCount > 1 ? "s" : ""}
+            </span>
+            <span>
+              <strong className="text-fg">{t.installCount.toLocaleString("fr-FR")}</strong> installation{t.installCount > 1 ? "s" : ""}
+            </span>
+            {t.publishedAt && <span>Publié le {t.publishedAt.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</span>}
+          </div>
         </div>
         <div className="brick p-5">
           <p className="eyebrow">Pour qui ?</p>
@@ -161,9 +188,11 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
         )}
       </section>
 
-      <div className="mt-12 flex justify-center">
+      <div className="mt-12 flex flex-col items-center gap-4">
         <UseTemplateButton slug={t.slug} loggedIn={!!user} label="Utiliser ce template" />
+        {!t.official && <ReportButton slug={t.slug} loggedIn={!!user} />}
       </div>
+      <ViewTracker slug={t.slug} />
       <StickyCta slug={t.slug} name={t.name} loggedIn={!!user} watchId="cta-principal" />
     </article>
   );

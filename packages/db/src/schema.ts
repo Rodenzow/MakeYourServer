@@ -82,14 +82,40 @@ export const templates = pgTable(
     authorUserId: uuid("author_user_id").references(() => users.id, { onDelete: "set null" }),
     /** Projet d’origine d’une proposition communautaire. */
     sourceProjectId: uuid("source_project_id"),
+    /** Sauvegarde d’origine d’une proposition communautaire. */
+    sourceBackupId: uuid("source_backup_id"),
+    /** L’auteur accepte que son pseudo Discord soit affiché sur la fiche publique. */
+    showAuthor: boolean("show_author").notNull().default(true),
     popularity: integer("popularity").notNull().default(0),
     installCount: integer("install_count").notNull().default(0),
+    /** Vues de la fiche publique (une par visiteur et par jour au plus). */
+    viewCount: integer("view_count").notNull().default(0),
     reviewNote: text("review_note"),
+    submittedAt: ts("submitted_at"),
+    reviewedAt: ts("reviewed_at"),
+    reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, { onDelete: "set null" }),
     publishedAt: ts("published_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("templates_status_idx").on(t.status), index("templates_theme_idx").on(t.theme)],
+  (t) => [index("templates_status_idx").on(t.status), index("templates_theme_idx").on(t.theme), index("templates_author_idx").on(t.authorUserId)],
+);
+
+/** Signalements de templates publics (contenu inapproprié, copie sans accord…). */
+export const templateReports = pgTable(
+  "template_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    templateId: uuid("template_id").notNull().references(() => templates.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    /** inappropriate | copyright | misleading | other */
+    reason: text("reason").notNull(),
+    details: text("details"),
+    resolvedAt: ts("resolved_at"),
+    resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("template_reports_open_idx").on(t.templateId, t.resolvedAt)],
 );
 
 /** Templates mis de côté par un utilisateur (favoris). */

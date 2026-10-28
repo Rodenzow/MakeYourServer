@@ -13,6 +13,7 @@ import { AutomodPanel, FeaturesPanel, SettingsPanel, WelcomePanel } from "./sett
 import { RolesPanel, StructurePanel } from "./structure-panel";
 import { useEditor, type Selection } from "./state";
 import { QuickGuide } from "./quick-guide";
+import { PublishDialog } from "../app/publish-dialog";
 
 const PANELS = [
   { id: "settings", label: "Réglages" },
@@ -80,6 +81,9 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
           <Button variant="secondary" size="sm" onClick={() => setAiOpen(true)}>
             <IconSparkle size={15} /> IA
           </Button>
+          <span className="hidden md:inline-flex">
+            <PublishDialog kind="project" id={project.id} defaultName={spec.meta.name} defaultTheme={spec.meta.theme} label="Publier" variant="ghost" />
+          </span>
           <ButtonLink href={`/projets/${project.id}/installer`} size="sm">
             Installer <IconArrowRight size={15} />
           </ButtonLink>

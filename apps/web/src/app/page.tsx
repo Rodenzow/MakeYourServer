@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TemplateTile } from "@/components/templates/template-tile";
 import { THEME_LABELS } from "@mys/core";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -171,27 +172,7 @@ export default async function Home() {
             <div className="mt-12">
               <Marquee speed={55}>
                 {templates.map((t) => (
-                  <Link key={t.id} href={`/templates/${t.slug}`} className="brick group w-[290px] shrink-0 overflow-hidden transition-[transform,border-color] duration-300 hover:-translate-y-1.5 hover:border-blue">
-                    <div className="h-1.5" style={{ background: colorHex(t.accentColor) }} />
-                    <div className="p-5">
-                      <p className="eyebrow">{THEME_LABELS[t.theme as keyof typeof THEME_LABELS] ?? t.theme}</p>
-                      <h3 className="mt-1.5 text-lg leading-tight font-bold">{t.name}</h3>
-                      <p className="mt-2 line-clamp-2 text-sm text-ink">{t.tagline}</p>
-                      <ul className="mt-4 space-y-1 text-[13px] text-ink">
-                        {t.preview.categories
-                          .slice(0, 2)
-                          .flatMap((c) => c.channels.slice(0, 2))
-                          .map((ch) => (
-                            <li key={ch.name} className="flex items-center gap-1.5">
-                              <ChannelIcon type={ch.type} size={14} className="text-muted" /> {ch.name}
-                            </li>
-                          ))}
-                      </ul>
-                      <p className="mt-4 font-mono text-xs text-muted">
-                        {t.stats.channels} salons · {t.stats.roles} rôles · {t.stats.messages} messages
-                      </p>
-                    </div>
-                  </Link>
+                  <TemplateTile key={t.id} t={t} className="w-[300px] shrink-0" />
                 ))}
               </Marquee>
             </div>

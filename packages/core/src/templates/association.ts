@@ -1,5 +1,5 @@
 import type { PermissionKey } from "../permissions";
-import { BRAND, PERMS, adminPerms, forum, moderatorPerms, own, privateTo, readOnly, text, voice, type TemplateDefinition } from "./helpers";
+import { BRAND, PERMS, adminPerms, announcement, forum, moderatorPerms, own, privateTo, readOnly, text, voice, type TemplateDefinition } from "./helpers";
 
 const BUREAU = ["president", "bureau"];
 const WRITE: PermissionKey[] = ["SEND_MESSAGES", "SEND_MESSAGES_IN_THREADS", "CREATE_PUBLIC_THREADS", "CREATE_PRIVATE_THREADS"];
@@ -22,13 +22,14 @@ export const association: TemplateDefinition = {
   name: "Association loi 1901",
   tagline: "Le serveur de votre association : adhérents informés, bénévoles coordonnés, bureau organisé.",
   description:
-    "Un espace structuré pour une association : accueil des visiteurs, validation du règlement intérieur pour accéder au serveur, annonces et agenda tenus par le bureau, comptes rendus d’assemblée générale, suivi des projets en forum, coordination des bénévoles et espace privé du bureau.",
+    "Un espace structuré pour une association : accueil des visiteurs avec onboarding (pôles, statut, rappels), annonces et agenda tenus par le bureau, validation du règlement intérieur pour accéder aux documents et comptes rendus d’assemblée générale, suivi des projets en forum, salons par pôle, coordination des bénévoles et espace privé du bureau.",
   theme: "association",
   size: "small",
   audience: "Associations sportives, culturelles, étudiantes ou solidaires, de 10 à 500 adhérents, souhaitant centraliser l’information et la vie associative.",
   highlights: [
-    "Validation du règlement intérieur par bouton : les visiteurs ne voient que l’accueil",
-    "Annonces, agenda et comptes rendus d’AG en lecture seule, publiés par le bureau",
+    "Onboarding : choix des pôles (communication, événements, logistique), du statut et des rappels",
+    "Validation du règlement intérieur par bouton : documents, comptes rendus d’AG et votes réservés aux adhérents",
+    "Annonces et agenda en lecture seule, publiés par le bureau",
     "Forum des projets avec tags (idée, en cours, terminé) et espace dédié aux bénévoles",
     "Espace privé du bureau avec trésorerie, documents internes et logs",
     "Tickets privés pour contacter le bureau et boîte à suggestions",
@@ -49,8 +50,12 @@ export const association: TemplateDefinition = {
       verificationLevel: "low",
       explicitContentFilter: "all_members",
       defaultNotifications: "only_mentions",
-      community: false,
+      community: true,
+      description: "Le serveur de l’association : actualités, projets, pôles bénévoles et échanges entre adhérents.",
       systemChannelId: "bienvenue",
+      rulesChannelId: "reglement",
+      publicUpdatesChannelId: "maj-discord",
+      safetyAlertsChannelId: "alertes",
       suppressJoinNotifications: true,
       suppressSetupTips: true,
     },
@@ -61,9 +66,17 @@ export const association: TemplateDefinition = {
       { id: "secretaire", name: "📝 Secrétariat", color: BRAND.periwinkle, hoist: false, mentionable: true, permissions: [...PERMS.member, "PIN_MESSAGES"], description: "Secrétaire : convocations, comptes rendus et documents officiels." },
       { id: "bureau", name: "🗂️ Bureau", color: BRAND.blue, hoist: true, mentionable: true, permissions: moderatorPerms(), staff: true, description: "Membres du bureau : publient les annonces, modèrent et répondent aux tickets." },
       { id: "benevole", name: "🙋 Bénévole", color: 0xff9f5a, hoist: true, mentionable: true, permissions: PERMS.member, description: "Adhérent·e engagé·e dans les actions de l’association, attribué par le bureau." },
-      { id: "membre", name: "🤝 Adhérent", color: BRAND.lightBlue, hoist: true, permissions: [], description: "Obtenu en acceptant le règlement intérieur : donne accès à tout le serveur." },
+      { id: "membre", name: "🤝 Adhérent", color: BRAND.lightBlue, hoist: true, permissions: [], description: "Obtenu en acceptant le règlement intérieur : donne accès aux documents, comptes rendus, votes et réunions." },
+      { id: "pole-communication", name: "📢 Pôle communication", selfAssignable: true, mentionable: true, description: "Réseaux sociaux, affiches, newsletter et relations presse." },
+      { id: "pole-evenements", name: "🎉 Pôle événements", selfAssignable: true, mentionable: true, description: "Organisation des manifestations, ateliers et sorties." },
+      { id: "pole-logistique", name: "📦 Pôle logistique", selfAssignable: true, mentionable: true, description: "Matériel, salles, transport et installation le jour J." },
+      { id: "statut-adherent", name: "🪪 Statut : adhérent", selfAssignable: true, description: "Déclare être déjà adhérent·e de l’association (cotisation vérifiée par le bureau)." },
+      { id: "statut-futur-benevole", name: "✋ Statut : futur bénévole", selfAssignable: true, description: "Souhaite s’engager : le bureau peut le contacter et lui attribuer le rôle Bénévole." },
+      { id: "statut-decouverte", name: "👀 Statut : découverte", selfAssignable: true, description: "Découvre l’association avant, peut-être, d’adhérer." },
+      { id: "statut-partenaire", name: "🤲 Statut : partenaire", selfAssignable: true, description: "Représente une structure partenaire (collectivité, association, sponsor)." },
       { id: "notif-agenda", name: "🔔 Rappels agenda", selfAssignable: true, description: "Mentionné pour les rappels de réunions et d’événements." },
       { id: "notif-missions", name: "📣 Appels à bénévoles", selfAssignable: true, description: "Mentionné quand l’association cherche des volontaires." },
+      { id: "notif-ag", name: "🏛️ Convocations AG", selfAssignable: true, description: "Mentionné pour les convocations aux assemblées générales et les votes." },
     ],
     categories: [
       {
@@ -79,22 +92,22 @@ export const association: TemplateDefinition = {
       {
         id: "cat-infos",
         name: "📢 Informations",
-        overwrites: adherentsReadOnly(),
+        overwrites: readOnly(["bureau"]),
         channels: [
-          text("annonces", "📣・annonces", "Les informations officielles du bureau.", { purpose: "announcements" }),
+          announcement("annonces", "📣・annonces", "Les informations officielles du bureau.", { purpose: "announcements" }),
           text("agenda", "📅・agenda", "Réunions, permanences, événements et dates limites.", { purpose: "events" }),
-          text("comptes-rendus", "🧾・comptes-rendus-ag", "Comptes rendus des assemblées générales et des réunions de bureau.", { purpose: "info" }),
-          text("documents", "📁・documents", "Statuts, règlement intérieur, bulletin d’adhésion et documents utiles.", { purpose: "info" }),
+          text("comptes-rendus", "🧾・comptes-rendus-ag", "Comptes rendus des assemblées générales et des réunions de bureau. Réservé aux adhérents.", { purpose: "info", ...own(adherentsReadOnly()) }),
+          text("documents", "📁・documents", "Statuts, règlement intérieur, bulletin d’adhésion et documents utiles. Réservé aux adhérents.", { purpose: "info", ...own(adherentsReadOnly()) }),
           text("faq", "❓・faq", "Les réponses aux questions fréquentes des adhérents.", { purpose: "faq" }),
-          text("roles", "🎭・mes-notifications", "Choisissez les rappels que vous souhaitez recevoir.", { purpose: "roles" }),
+          text("roles", "🎭・mes-rôles", "Choisissez vos pôles, votre statut et les rappels que vous souhaitez recevoir.", { purpose: "roles" }),
         ],
       },
       {
         id: "cat-echanges",
         name: "💬 Vie associative",
-        overwrites: adherents(),
+        overwrites: [],
         channels: [
-          text("general", "💬・discussions", "Échanges entre adhérents, dans la bonne humeur.", { purpose: "general" }),
+          text("general", "💬・discussions", "Échanges entre adhérents, bénévoles et sympathisants, dans la bonne humeur.", { purpose: "general" }),
           text("presentations", "🙋・présentations", "Présentez-vous : votre prénom, ce qui vous amène, ce que vous aimeriez apporter.", { slowmode: 300, purpose: "introductions" }),
           forum("projets", "🌱・projets", "Une publication par projet : objectif, besoins, calendrier. Utilisez les tags pour indiquer l’avancement.", [
             { name: "Idée", emoji: "💡" },
@@ -102,6 +115,7 @@ export const association: TemplateDefinition = {
             { name: "Besoin d’aide", emoji: "🙋" },
             { name: "Terminé", emoji: "✅", moderated: true },
           ], { defaultReaction: "👍" }),
+          text("pause-cafe", "☕・pause-café", "Discussions libres, hors activités de l’association."),
           text("suggestions", "💡・suggestions", "Proposez une idée avec le bouton : le bureau l’étudiera en réunion.", {
             purpose: "suggestions",
             ...own([
@@ -110,7 +124,17 @@ export const association: TemplateDefinition = {
               { target: "bureau", allow: ["VIEW_CHANNEL", "SEND_MESSAGES"], deny: [] },
             ]),
           }),
-          text("support", "🎫・contacter-le-bureau", "Une question sur votre adhésion, une demande particulière ? Ouvrez un ticket privé.", { purpose: "support" }),
+          text("support", "🎫・contacter-le-bureau", "Une question sur votre adhésion, une demande particulière ? Ouvrez un ticket privé.", { purpose: "support", ...own(readOnly(["bureau"])) }),
+        ],
+      },
+      {
+        id: "cat-poles",
+        name: "🧩 Pôles",
+        overwrites: [],
+        channels: [
+          text("communication", "📢・pôle-communication", "Réseaux sociaux, affiches, newsletter : préparez ensemble la communication de l’association."),
+          text("evenements", "🎉・pôle-événements", "Idées, rétroplannings et répartition des tâches pour les prochains événements."),
+          text("logistique", "📦・pôle-logistique", "Matériel, réservations de salles, transport et installation."),
         ],
       },
       {
@@ -127,7 +151,7 @@ export const association: TemplateDefinition = {
         id: "cat-vocaux",
         name: "🔊 Réunions",
         overwrites: adherents(),
-        channels: [voice("vocal-ag", "🏛️ Assemblée générale"), voice("vocal-permanence", "☕ Permanence")],
+        channels: [voice("vocal-ag", "🏛️ Assemblée générale"), voice("vocal-permanence", "☕ Permanence (ouverte à tous)", own([]))],
       },
       {
         id: "cat-bureau",
@@ -137,7 +161,8 @@ export const association: TemplateDefinition = {
           text("bureau-discussion", "🗂️・bureau", "Échanges du bureau. Les décisions sont consignées dans les comptes rendus.", { purpose: "staff" }),
           text("tresorerie", "💶・trésorerie", "Budget, cotisations, remboursements. Accès : présidence et trésorerie.", { ...own(privateTo(["president", "tresorier"])) }),
           text("documents-internes", "📁・documents-internes", "Brouillons, conventions, dossiers de subvention."),
-          text("alertes", "🚨・alertes-automod", "Alertes de modération automatique.", { purpose: "mod-logs" }),
+          text("maj-discord", "📢・mises-à-jour-discord", "Messages officiels de Discord destinés au bureau.", { purpose: "updates", ...own(privateTo(BUREAU)) }),
+          text("alertes", "🚨・alertes-automod", "Alertes de modération automatique et alertes de sécurité.", { purpose: "mod-logs" }),
           text("logs", "📋・logs-arrivées", "Arrivées et départs des membres.", { purpose: "logs" }),
           voice("vocal-bureau", "🔒 Réunion de bureau"),
         ],
@@ -152,10 +177,10 @@ export const association: TemplateDefinition = {
           {
             title: "Bienvenue sur le serveur de {server} 👋",
             description:
-              "Ce serveur rassemble les adhérents, les bénévoles et le bureau de l’association.\n\n**Pour accéder à l’ensemble des salons :**\n1. Lisez le {#reglement}\n2. Cliquez sur « J’accepte le règlement »\n3. Présentez-vous dans {#presentations}",
+              "Ce serveur rassemble les adhérents, les bénévoles, le bureau et les sympathisants de l’association.\n\n**Pour bien commencer :**\n1. Lisez le {#reglement} et cliquez sur « J’accepte le règlement » : vous accéderez aux documents, aux comptes rendus et aux votes\n2. Choisissez vos pôles et vos rappels dans {#roles}\n3. Présentez-vous dans {#presentations}",
             fields: [
               { name: "Découvrir l’association", value: "Nos missions et notre fonctionnement sont présentés dans {#presentation-asso}." },
-              { name: "Une question ?", value: "Après validation du règlement, contactez le bureau dans {#support}." },
+              { name: "Une question ?", value: "Posez-la dans {#general} ou contactez le bureau en privé dans {#support}." },
             ],
             footer: "Merci de votre engagement !",
           },
@@ -178,7 +203,7 @@ export const association: TemplateDefinition = {
               { name: "6. Données personnelles", value: "Ne publiez pas d’informations personnelles sur d’autres membres. Vous pouvez demander la suppression de vos données au bureau." },
               { name: "7. Décisions", value: "Les décisions officielles sont prises en bureau ou en assemblée générale et publiées dans {#annonces}." },
             ],
-            footer: "En cliquant sur le bouton, vous acceptez ce règlement et accédez au serveur.",
+            footer: "En cliquant sur le bouton, vous acceptez ce règlement et accédez aux espaces réservés aux adhérents.",
           },
         ],
         buttons: [{ action: "rules-accept", roleId: "membre", label: "J’accepte le règlement", emoji: "✅", style: "success" }],
@@ -200,12 +225,34 @@ export const association: TemplateDefinition = {
         ],
       },
       {
+        id: "msg-roles-poles",
+        channelId: "roles",
+        embeds: [{ title: "🧩 Vos pôles", description: "Rejoignez un ou plusieurs pôles pour suivre leurs salons et être mentionné quand ils ont besoin de vous." }],
+        buttons: [
+          { action: "role-toggle", roleId: "pole-communication", label: "Communication", emoji: "📢" },
+          { action: "role-toggle", roleId: "pole-evenements", label: "Événements", emoji: "🎉" },
+          { action: "role-toggle", roleId: "pole-logistique", label: "Logistique", emoji: "📦" },
+        ],
+      },
+      {
+        id: "msg-roles-statut",
+        channelId: "roles",
+        embeds: [{ title: "🪪 Votre statut", description: "Indiquez votre situation vis-à-vis de l’association : le bureau saura mieux vous accompagner. Un nouveau clic retire le rôle." }],
+        buttons: [
+          { action: "role-toggle", roleId: "statut-adherent", label: "Déjà adhérent·e", emoji: "🪪" },
+          { action: "role-toggle", roleId: "statut-futur-benevole", label: "Futur bénévole", emoji: "✋" },
+          { action: "role-toggle", roleId: "statut-decouverte", label: "Je découvre", emoji: "👀" },
+          { action: "role-toggle", roleId: "statut-partenaire", label: "Partenaire", emoji: "🤲" },
+        ],
+      },
+      {
         id: "msg-roles",
         channelId: "roles",
         embeds: [{ title: "🔔 Vos notifications", description: "Cliquez sur un bouton pour activer ou désactiver un rappel. Vous pouvez changer d’avis à tout moment." }],
         buttons: [
           { action: "role-toggle", roleId: "notif-agenda", label: "Rappels de l’agenda", emoji: "📅", style: "primary" },
           { action: "role-toggle", roleId: "notif-missions", label: "Appels à bénévoles", emoji: "📣", style: "primary" },
+          { action: "role-toggle", roleId: "notif-ag", label: "Convocations AG", emoji: "🏛️", style: "primary" },
         ],
       },
       {
@@ -217,7 +264,8 @@ export const association: TemplateDefinition = {
             title: "❓ Questions fréquentes",
             fields: [
               { name: "Comment régler ma cotisation ?", value: "Les modalités sont détaillées dans {#documents}. Pour toute question, ouvrez un ticket dans {#support}." },
-              { name: "Comment devenir bénévole ?", value: "Répondez aux appels publiés dans les annonces ou signalez-vous au bureau : le rôle {@benevole} vous donnera accès à l’espace bénévoles." },
+              { name: "Comment devenir bénévole ?", value: "Prenez le statut {@statut-futur-benevole} dans {#roles}, répondez aux appels publiés dans les annonces ou signalez-vous au bureau : le rôle {@benevole} vous donnera accès à l’espace bénévoles." },
+              { name: "À quoi servent les pôles ?", value: "Chaque pôle a son salon ({#communication}, {#evenements}, {#logistique}). Rejoignez-en un dans {#roles} pour suivre ses besoins." },
               { name: "Où trouver les comptes rendus ?", value: "Tous les comptes rendus d’assemblée générale sont publiés dans {#comptes-rendus}." },
               { name: "Comment proposer un projet ?", value: "Créez une publication dans {#projets} avec le tag « Idée », ou utilisez le bouton de {#suggestions}." },
             ],
@@ -252,7 +300,7 @@ export const association: TemplateDefinition = {
               { name: "Annonces", value: "Toute annonce officielle est relue par deux membres du bureau avant publication dans {#annonces}." },
               { name: "Comptes rendus", value: "Le secrétariat publie le compte rendu dans {#comptes-rendus} sous 15 jours après chaque AG." },
               { name: "Demandes des adhérents", value: "Les tickets reçoivent une réponse sous 72 h. Archivez le fil une fois la demande traitée." },
-              { name: "Accès", value: "Attribuez {@benevole} aux volontaires et retirez {@membre} aux personnes qui ne sont plus adhérentes." },
+              { name: "Accès", value: "Attribuez {@benevole} aux volontaires (pensez à {@statut-futur-benevole}) et retirez {@membre} aux personnes qui ne sont plus adhérentes." },
             ],
           },
         ],
@@ -279,6 +327,78 @@ export const association: TemplateDefinition = {
         exemptRoles: BUREAU,
       },
     ],
+    onboarding: {
+      enabled: true,
+      mode: "default",
+      defaultChannelIds: ["bienvenue", "reglement", "presentation-asso", "annonces", "agenda", "faq", "general", "presentations", "projets", "pause-cafe", "vocal-permanence"],
+      prompts: [
+        {
+          id: "q-statut",
+          title: "Quel est votre lien avec l’association ?",
+          type: "multiple_choice",
+          singleSelect: true,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-adherent", title: "Je suis déjà adhérent·e", description: "Cotisation réglée ou en cours", emoji: "🪪", roleIds: ["statut-adherent"], channelIds: ["roles"] },
+            { id: "o-futur-benevole", title: "Je souhaite devenir bénévole", description: "Le bureau vous recontactera pour vos premières missions", emoji: "✋", roleIds: ["statut-futur-benevole", "notif-missions"], channelIds: ["support"] },
+            { id: "o-decouverte", title: "Je découvre l’association", description: "Missions, fonctionnement et adhésion", emoji: "👀", roleIds: ["statut-decouverte"], channelIds: ["support"] },
+            { id: "o-partenaire", title: "Je représente un partenaire", description: "Collectivité, association amie, sponsor", emoji: "🤲", roleIds: ["statut-partenaire"], channelIds: ["support"] },
+          ],
+        },
+        {
+          id: "q-poles",
+          title: "Dans quels pôles aimeriez-vous donner un coup de main ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-communication", title: "Communication", description: "Réseaux sociaux, affiches, newsletter", emoji: "📢", roleIds: ["pole-communication"], channelIds: ["communication"] },
+            { id: "o-evenements", title: "Événements", description: "Manifestations, ateliers et sorties", emoji: "🎉", roleIds: ["pole-evenements"], channelIds: ["evenements"] },
+            { id: "o-logistique", title: "Logistique", description: "Matériel, salles, transport, installation", emoji: "📦", roleIds: ["pole-logistique"], channelIds: ["logistique"] },
+          ],
+        },
+        {
+          id: "q-notifs",
+          title: "Quels rappels souhaitez-vous recevoir ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-notif-agenda", title: "Réunions et événements", description: "Rappels des dates de l’agenda", emoji: "📅", roleIds: ["notif-agenda"], channelIds: ["agenda"] },
+            { id: "o-notif-missions", title: "Appels à bénévoles", description: "Quand l’association cherche des volontaires", emoji: "📣", roleIds: ["notif-missions"], channelIds: [] },
+            { id: "o-notif-ag", title: "Assemblées générales et votes", description: "Convocations et résultats", emoji: "🏛️", roleIds: ["notif-ag"], channelIds: ["annonces"] },
+          ],
+        },
+      ],
+    },
+    welcomeScreen: {
+      enabled: true,
+      description: "Le serveur de l’association : actualités, projets, pôles bénévoles et échanges entre adhérents.",
+      channels: [
+        { channelId: "reglement", description: "Lire et accepter le règlement", emoji: "📜" },
+        { channelId: "presentation-asso", description: "Découvrir l’association", emoji: "ℹ️" },
+        { channelId: "agenda", description: "Voir les prochaines dates", emoji: "📅" },
+        { channelId: "projets", description: "Suivre les projets", emoji: "🌱" },
+        { channelId: "general", description: "Échanger avec les membres", emoji: "💬" },
+      ],
+    },
+    serverGuide: {
+      welcomeMessage: "Bienvenue ! Découvrez l’association, acceptez le règlement intérieur et rejoignez les pôles qui vous intéressent.",
+      newMemberActions: [
+        { title: "Lire le règlement intérieur", channelId: "reglement", description: "Et l’accepter pour accéder aux espaces adhérents." },
+        { title: "Se présenter", channelId: "presentations", description: "Votre prénom et ce qui vous amène." },
+        { title: "Rejoindre un pôle", channelId: "roles", description: "Communication, événements ou logistique." },
+      ],
+      resourceChannels: [
+        { title: "L’association", channelId: "presentation-asso" },
+        { title: "Questions fréquentes", channelId: "faq" },
+        { title: "Agenda", channelId: "agenda" },
+        { title: "Contacter le bureau", channelId: "support" },
+      ],
+    },
     features: {
       welcome: {
         enabled: true,

@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/session";
 import { ActionButton } from "@/components/app/action-button";
 import { RenameBackup } from "@/components/app/backup-forms";
 import { BackupTree } from "@/components/app/backup-tree";
+import { PublishDialog } from "@/components/app/publish-dialog";
 import { InstallWizard } from "@/components/install/install-wizard";
 import { Badge, Notice, PageHeader, formatDate } from "@/components/ui";
 
@@ -47,6 +48,7 @@ export default async function BackupPage({ params, searchParams }: { params: Pro
             <ActionButton url="/api/projects" body={{ source: "backup", backupId: b.id }} redirectFromResponse={(d) => `/projets/${(d.project as { id: string }).id}`}>
               Créer un projet à partir de cette sauvegarde
             </ActionButton>
+            <PublishDialog kind="backup" id={b.id} defaultName={b.guildName} defaultTheme={spec.meta.theme} label="Publier comme template" />
             <ActionButton url={`/api/backups/${b.id}`} method="DELETE" variant="ghost" confirm="Supprimer définitivement cette sauvegarde (et les messages exportés) ?" redirectTo="/sauvegardes">
               Supprimer
             </ActionButton>

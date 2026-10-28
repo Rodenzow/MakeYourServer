@@ -15,6 +15,11 @@ const THEME_TO_TEMPLATE: Record<string, string> = {
   etudes: "etudes",
   roleplay: "roleplay",
   professionnel: "projet-pro",
+  tech: "tech-dev",
+  art: "art-creation",
+  anime: "anime-manga",
+  amis: "entre-amis",
+  sport: "sport",
 };
 
 export function mockSpec(params: { theme: string; name?: string; size?: string; tone?: string; audience?: string }): ServerSpec {

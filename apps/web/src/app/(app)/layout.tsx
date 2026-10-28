@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               { href: "/serveurs", label: "Serveurs" },
               { href: "/installations", label: "Installations" },
               { href: "/sauvegardes", label: "Sauvegardes" },
+              { href: "/publications", label: "Mes publications" },
               { href: "/abonnement", label: "Abonnement" },
             ]}
           />

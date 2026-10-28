@@ -3,6 +3,10 @@ import { ServerSpecSchema, validateSpec, specStats, allChannels } from "../src";
 import { OFFICIAL_TEMPLATES, detectFeatures } from "../src/templates";
 
 describe("templates officiels", () => {
+  it("couvrent au moins 13 thèmes", () => {
+    expect(OFFICIAL_TEMPLATES.length).toBeGreaterThanOrEqual(13);
+  });
+
   it("ont des slugs uniques", () => {
     const slugs = OFFICIAL_TEMPLATES.map((t) => t.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
@@ -31,6 +35,16 @@ describe("templates officiels", () => {
         expect(purposes).toContain("rules");
         expect(purposes).toContain("welcome");
         expect(detectFeatures(parsed.data)).toContain("staff");
+      });
+      it("configure l’onboarding Discord avec au moins 3 questions", () => {
+        if (!parsed.success) return;
+        expect(parsed.data.settings.community).toBe(true);
+        expect(parsed.data.onboarding?.enabled).toBe(true);
+        expect(parsed.data.onboarding!.prompts.length).toBeGreaterThanOrEqual(3);
+        for (const p of parsed.data.onboarding!.prompts) {
+          expect(p.options.length, p.title).toBeGreaterThanOrEqual(2);
+          expect(p.options.every((o) => o.roleIds.length + o.channelIds.length > 0), p.title).toBe(true);
+        }
       });
       it("a une fiche descriptive complète", () => {
         expect(t.highlights.length).toBeGreaterThanOrEqual(3);

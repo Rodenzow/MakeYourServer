@@ -52,6 +52,7 @@ export const etudes: TemplateDefinition = {
       { id: "annee-2", name: "📘 2e année", color: 0x83a8f3, selfAssignable: true, description: "Étudiants de deuxième année." },
       { id: "annee-3", name: "📙 3e année", color: 0xf5a25d, selfAssignable: true, description: "Étudiants de troisième année et plus." },
       { id: "notif-examens", name: "⏰ Rappels d’examens", selfAssignable: true, description: "Mentionné pour les rappels de partiels, rendus et inscriptions." },
+      { id: "notif-revisions", name: "📖 Sessions de révision", selfAssignable: true, description: "Prévenu quand une session de révision en vocal s’organise." },
     ],
     categories: [
       {
@@ -182,7 +183,10 @@ export const etudes: TemplateDefinition = {
         id: "msg-roles-notifs",
         channelId: "roles",
         embeds: [{ title: "⏰ Rappels d’examens", description: "Active ce rôle pour être mentionné à l’approche des partiels, des rendus et des inscriptions." }],
-        buttons: [{ action: "role-toggle", roleId: "notif-examens", label: "Recevoir les rappels", emoji: "⏰", style: "primary" }],
+        buttons: [
+          { action: "role-toggle", roleId: "notif-examens", label: "Rappels d’examens", emoji: "⏰", style: "primary" },
+          { action: "role-toggle", roleId: "notif-revisions", label: "Sessions de révision", emoji: "📖", style: "primary" },
+        ],
       },
       {
         id: "msg-planning",
@@ -317,12 +321,15 @@ export const etudes: TemplateDefinition = {
         },
         {
           id: "q-rappels",
-          title: "Veux-tu des rappels d’examens ?",
+          title: "Quels rappels veux-tu recevoir ?",
           type: "multiple_choice",
-          singleSelect: true,
+          singleSelect: false,
           required: false,
           inOnboarding: true,
-          options: [{ id: "o-rappels", title: "Oui, préviens-moi", emoji: "⏰", roleIds: ["notif-examens"], channelIds: ["ressources"] }],
+          options: [
+            { id: "o-rappels", title: "Examens, rendus et inscriptions", emoji: "⏰", roleIds: ["notif-examens"], channelIds: ["planning", "ressources"] },
+            { id: "o-revisions", title: "Sessions de révision en vocal", emoji: "📖", roleIds: ["notif-revisions"], channelIds: ["objectifs"] },
+          ],
         },
       ],
     },

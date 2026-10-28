@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app/app-nav";
 import { requireAdmin } from "@/lib/session";
+import { moderationCounts } from "@/lib/admin";
 
 export const metadata = { title: { default: "Administration", template: "%s · Administration" }, robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 /** Espace privé : réservé aux identifiants Discord listés dans ADMIN_DISCORD_IDS (contrôle côté serveur). */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await requireAdmin();
+  const mod = await moderationCounts();
   return (
     <>
       <SiteHeader />
@@ -22,6 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             layoutId="admin-nav"
             items={[
               { href: "/admin", label: "Vue d’ensemble" },
+              { href: "/admin/publications", label: "Publications", badge: mod.pending + mod.reports > 0 ? String(mod.pending + mod.reports) : undefined },
               { href: "/admin/utilisateurs", label: "Utilisateurs" },
               { href: "/admin/templates", label: "Templates" },
               { href: "/admin/offres", label: "Offres & quotas" },

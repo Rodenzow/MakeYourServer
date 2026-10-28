@@ -1,2 +1,2 @@
-export { backups, closeDb, getDb, projects, sessions, templates, users } from "@mys/db";
+export { backups, closeDb, eq, getDb, projects, sessions, templateReports, templates, users } from "@mys/db";
 export { ServerSpecSchema } from "@mys/core";

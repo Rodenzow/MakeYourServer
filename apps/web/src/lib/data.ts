@@ -15,6 +15,7 @@ import {
   savedTemplates,
   sql,
   templates,
+  users,
   type schema,
 } from "@mys/db";
 import { getEntitlement } from "@mys/engine";
@@ -30,7 +31,9 @@ export interface TemplateQuery {
   theme?: string;
   size?: string;
   features?: string[];
-  sort?: "popular" | "recent" | "name";
+  /** official : templates officiels · community : publiés par les membres */
+  source?: "official" | "community";
+  sort?: "popular" | "recent" | "views" | "name";
 }
 
 /** Recherche dans les templates PUBLIÉS uniquement (jamais les projets ni les sauvegardes). */
@@ -43,17 +46,42 @@ export async function searchTemplates(query: TemplateQuery) {
   if (query.theme) conds.push(eq(templates.theme, query.theme));
   if (query.size) conds.push(eq(templates.size, query.size));
   for (const f of query.features ?? []) conds.push(sql`${templates.features} ? ${f}`);
+  if (query.source) conds.push(eq(templates.official, query.source === "official"));
   const order =
-    query.sort === "recent" ? [desc(templates.publishedAt)] : query.sort === "name" ? [asc(templates.name)] : [desc(sql`${templates.popularity} + ${templates.installCount} * 2`)];
+    query.sort === "recent"
+      ? [desc(templates.publishedAt)]
+      : query.sort === "name"
+        ? [asc(templates.name)]
+        : query.sort === "views"
+          ? [desc(templates.viewCount)]
+          : [desc(sql`${templates.popularity} + ${templates.installCount} * 2 + ${templates.viewCount} / 20`)];
   const rows = await getDb()
-    .select()
+    .select({ t: templates, author: { username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar } })
     .from(templates)
+    .leftJoin(users, eq(users.id, templates.authorUserId))
     .where(and(...conds))
     .orderBy(...order);
-  return rows.map(templateCard);
+  return rows.map((r) => templateCard(r.t, r.author));
 }
 
-export function templateCard(t: TemplateRow) {
+type AuthorRow = { username: string; globalName: string | null; discordId: string; avatar: string | null } | null;
+
+/** Auteur affiché publiquement : uniquement pour un template communautaire dont l’auteur l’a accepté. */
+export function publicAuthor(t: Pick<TemplateRow, "official" | "showAuthor">, a: AuthorRow) {
+  if (t.official || !t.showAuthor || !a) return null;
+  return { name: a.globalName ?? a.username, avatarUrl: a.avatar ? `https://cdn.discordapp.com/avatars/${a.discordId}/${a.avatar}.png?size=64` : null };
+}
+
+export async function getTemplateAuthor(t: TemplateRow) {
+  if (t.official || !t.showAuthor || !t.authorUserId) return null;
+  const [a] = await getDb()
+    .select({ username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar })
+    .from(users)
+    .where(eq(users.id, t.authorUserId));
+  return publicAuthor(t, a ?? null);
+}
+
+export function templateCard(t: TemplateRow, author: AuthorRow = null) {
   return {
     id: t.id,
     slug: t.slug,
@@ -65,11 +93,14 @@ export function templateCard(t: TemplateRow) {
     official: t.official,
     popularity: t.popularity + t.installCount * 2,
     installCount: t.installCount,
+    viewCount: t.viewCount,
+    author: publicAuthor(t, author),
     stats: specStats(t.spec),
     accentColor: t.spec.meta.accentColor ?? 0x83a8f3,
     preview: {
       categories: t.spec.categories.slice(0, 4).map((c) => ({ name: c.name, channels: c.channels.slice(0, 4).map((ch) => ({ name: ch.name, type: ch.type })) })),
       roles: t.spec.roles.slice(0, 6).map((r) => ({ name: r.name, color: r.color })),
+      onboarding: t.spec.onboarding?.enabled ? { count: t.spec.onboarding.prompts.length, first: t.spec.onboarding.prompts[0]?.title ?? null } : null,
     },
   };
 }

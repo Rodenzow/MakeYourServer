@@ -13,7 +13,7 @@ export const createur: TemplateDefinition = {
   audience: "Vidéastes, streameurs et créateurs TikTok qui veulent fidéliser leur audience, de quelques centaines à plusieurs milliers de membres.",
   highlights: [
     "Salons d’annonces de vidéos et de lives réservés au créateur et à son équipe",
-    "Rôles de notification à la carte : lives, vidéos, événements",
+    "Onboarding : notifications à la carte (lives, vidéos, événements), envies et plateforme préférée",
     "Forum de fan-arts avec tags et boîte à idées de vidéos soumise au vote",
     "Coulisses réservées aux soutiens (rôle attribué par l’équipe)",
     "Modération pensée pour les grosses audiences : anti-raid, anti-arnaques, tickets",
@@ -54,6 +54,9 @@ export const createur: TemplateDefinition = {
       { id: "notif-lives", name: "🔴 Notif lives", selfAssignable: true, description: "Mentionné au lancement de chaque live." },
       { id: "notif-videos", name: "🎬 Notif vidéos", selfAssignable: true, description: "Mentionné à chaque nouvelle vidéo." },
       { id: "notif-events", name: "📅 Notif événements", selfAssignable: true, description: "Mentionné pour les watch parties et événements." },
+      { id: "fan-youtube", name: "▶️ Viewer YouTube", selfAssignable: true, description: "Suit surtout la chaîne sur YouTube." },
+      { id: "fan-twitch", name: "🟣 Viewer Twitch", selfAssignable: true, description: "Suit surtout les lives sur Twitch." },
+      { id: "fan-tiktok", name: "📱 Viewer TikTok", selfAssignable: true, description: "Suit surtout les formats courts (TikTok, Shorts, Reels)." },
     ],
     categories: [
       {
@@ -175,6 +178,16 @@ export const createur: TemplateDefinition = {
         ],
       },
       {
+        id: "msg-plateformes",
+        channelId: "roles",
+        embeds: [{ title: "📺 Où nous suis-tu ?", description: "Indique ta plateforme préférée : ça aide l’équipe à savoir où publier en priorité. Un nouveau clic retire le rôle." }],
+        buttons: [
+          { action: "role-toggle", roleId: "fan-youtube", label: "YouTube", emoji: "▶️" },
+          { action: "role-toggle", roleId: "fan-twitch", label: "Twitch", emoji: "🟣" },
+          { action: "role-toggle", roleId: "fan-tiktok", label: "TikTok & formats courts", emoji: "📱" },
+        ],
+      },
+      {
         id: "msg-faq",
         channelId: "faq",
         pin: true,
@@ -287,6 +300,19 @@ export const createur: TemplateDefinition = {
             { id: "o-creer", title: "Partager mes créations", emoji: "🎨", roleIds: [], channelIds: ["fan-art", "clips"] },
             { id: "o-idees", title: "Proposer des idées de vidéos", emoji: "💡", roleIds: [], channelIds: ["idees-videos"] },
             { id: "o-discuter", title: "Discuter pendant les lives", emoji: "💬", roleIds: [], channelIds: ["chat-live", "vocal-detente"] },
+          ],
+        },
+        {
+          id: "q-plateforme",
+          title: "Où suis-tu la chaîne le plus souvent ?",
+          type: "multiple_choice",
+          singleSelect: false,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-youtube", title: "YouTube", description: "Vidéos longues et premières", emoji: "▶️", roleIds: ["fan-youtube"], channelIds: ["videos"] },
+            { id: "o-twitch", title: "Twitch", description: "Lives et rediffusions", emoji: "🟣", roleIds: ["fan-twitch"], channelIds: ["lives", "chat-live"] },
+            { id: "o-tiktok", title: "TikTok & formats courts", description: "TikTok, Shorts et Reels", emoji: "📱", roleIds: ["fan-tiktok"], channelIds: ["clips"] },
           ],
         },
       ],
