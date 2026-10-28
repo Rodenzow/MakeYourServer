@@ -145,11 +145,13 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           BOT_MEMBER_EVENTS: ${{ vars.BOT_MEMBER_EVENTS }}
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          LEGAL_EDITOR: ${{ vars.LEGAL_EDITOR }}
         run: |
           f="$RUNNER_TEMP/site-secrets.json"
           node scripts/ci/secrets-json.mjs "$f" APP_URL DATABASE_URL APP_ENCRYPTION_KEY ADMIN_DISCORD_IDS \
             DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_BOT_TOKEN ANTHROPIC_API_KEY AI_MODEL \
-            STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET BOT_MEMBER_EVENTS
+            STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET BOT_MEMBER_EVENTS CONTACT_EMAIL LEGAL_EDITOR
           (cd apps/web && pnpm exec wrangler secret bulk "$f")
           rm -f "$f"
 

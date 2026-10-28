@@ -9,3 +9,4 @@ export * from "./planner";
 export * from "./plans";
 export * from "./backup-spec";
 export * from "./ai-patch";
+export * from "./publish";

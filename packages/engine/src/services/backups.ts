@@ -79,6 +79,9 @@ export async function createBackup(gateway: GuildGateway, input: CreateBackupInp
   delete snapshot.bot;
 
   const exported: Array<typeof backupMessages.$inferInsert> = [];
+  // Sans l’intention privilégiée « Message Content » (portail développeur), Discord
+  // renvoie le contenu des messages des membres vide : on le compte pour le signaler.
+  let hidden = 0;
   for (const channelId of channelIds) {
     if (!state.channels.some((c) => c.id === channelId)) continue;
     let before: string | undefined;
@@ -87,6 +90,10 @@ export async function createBackup(gateway: GuildGateway, input: CreateBackupInp
       const batch = await gateway.listMessages(channelId, { limit: Math.min(100, remaining), before });
       if (!batch.length) break;
       for (const m of batch) {
+        if (!m.authorIsBot && !m.content && !m.embeds.length && !m.attachments.length) {
+          hidden++;
+          continue;
+        }
         exported.push({
           backupId: "",
           channelId,
@@ -126,7 +133,7 @@ export async function createBackup(gateway: GuildGateway, input: CreateBackupInp
         snapshot,
         messageCount: exported.length,
         sizeBytes: json.length + exported.reduce((n, m) => n + (m.content?.length ?? 0), 0),
-        summary: { ...summarizeState(state), messages: exported.length },
+        summary: { ...summarizeState(state), messages: exported.length, ...(hidden ? { messagesHidden: hidden } : {}) },
         installationId: input.installationId ?? null,
         expiresAt,
       })

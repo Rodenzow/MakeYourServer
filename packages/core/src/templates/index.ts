@@ -8,13 +8,18 @@ import { roleplay } from "./roleplay";
 import { createur } from "./createur";
 import { gaming } from "./gaming";
 import { musique } from "./musique";
+import { tech } from "./tech";
+import { art } from "./art";
+import { anime } from "./anime";
+import { amis } from "./amis";
+import { sport } from "./sport";
 import type { TemplateDefinition } from "./helpers";
 
 export type { TemplateDefinition } from "./helpers";
 export { BRAND } from "./helpers";
 
 /** Templates officiels livrés avec la plateforme (insérés en base par le seed). */
-export const OFFICIAL_TEMPLATES: TemplateDefinition[] = [communaute, association, etudes, roleplay, professionnel, gaming, musique, createur];
+export const OFFICIAL_TEMPLATES: TemplateDefinition[] = [communaute, gaming, amis, createur, musique, tech, art, anime, sport, association, etudes, roleplay, professionnel];
 
 export const FEATURE_TAGS = {
   onboarding: "Onboarding Discord",

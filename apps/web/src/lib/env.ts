@@ -19,6 +19,10 @@ export const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   aiProvider: (process.env.AI_PROVIDER ?? "anthropic") as "anthropic" | "mock",
+  /** Adresse de contact affichée dans les conditions et la politique de confidentialité. */
+  contactEmail: process.env.CONTACT_EMAIL ?? "",
+  /** Éditeur du site (nom ou raison sociale), affiché dans les mentions légales. */
+  legalEditor: process.env.LEGAL_EDITOR ?? "",
 };
 
 export const discordConfigured = () => !!(env.discordClientId && env.discordClientSecret);

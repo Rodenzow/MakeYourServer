@@ -12,7 +12,7 @@ export const musique: TemplateDefinition = {
   size: "medium",
   audience: "Collectifs, labels indépendants, communautés de rappeurs, beatmakers et passionnés de rap francophone qui veulent créer, se faire écouter et collaborer.",
   highlights: [
-    "Onboarding « Tu es plutôt… » : artiste, beatmaker, ingé son ou auditeur, avec rôles et salons adaptés",
+    "Onboarding « Tu es plutôt… » : profil (artiste, beatmaker, ingé son, auditeur), niveau et notifications, avec rôles et salons adaptés",
     "Forum de collaborations avec tags Beatmaker, Topliner, Ingé son, Clip et Featuring",
     "Forum « sorties » réservé aux artistes, commentaires ouverts à tous",
     "Feedback encadré (mode lent, règle « je donne avant de recevoir »)",
@@ -58,6 +58,9 @@ export const musique: TemplateDefinition = {
       { id: "auditeur", name: "🎧 Auditeur", selfAssignable: true, description: "Passionné qui écoute, découvre et donne son avis." },
       { id: "notif-sorties", name: "🔔 Notif sorties", selfAssignable: true, description: "Prévenu des sorties mises en avant." },
       { id: "notif-events", name: "📅 Notif événements", selfAssignable: true, description: "Prévenu des open mics, battles et écoutes." },
+      { id: "niveau-debutant", name: "🌱 Je débute", selfAssignable: true, description: "Premiers textes, premières prods : en recherche de conseils." },
+      { id: "niveau-progression", name: "📈 En progression", selfAssignable: true, description: "Quelques sons sortis, envie de passer un cap." },
+      { id: "niveau-confirme", name: "💼 Confirmé", selfAssignable: true, description: "Projets réguliers, ouvert aux collaborations sérieuses." },
     ],
     categories: [
       {
@@ -215,6 +218,16 @@ export const musique: TemplateDefinition = {
         ],
       },
       {
+        id: "msg-roles-niveau",
+        channelId: "roles",
+        embeds: [{ title: "📈 Où en es-tu dans ta musique ?", description: "Prends un seul niveau : il aide les autres à te proposer des conseils ou des collabs adaptés. Un nouveau clic retire le rôle." }],
+        buttons: [
+          { action: "role-toggle", roleId: "niveau-debutant", label: "Je débute", emoji: "🌱" },
+          { action: "role-toggle", roleId: "niveau-progression", label: "En progression", emoji: "📈" },
+          { action: "role-toggle", roleId: "niveau-confirme", label: "Confirmé", emoji: "💼" },
+        ],
+      },
+      {
         id: "msg-faq",
         channelId: "faq",
         pin: true,
@@ -330,7 +343,21 @@ export const musique: TemplateDefinition = {
           inOnboarding: true,
           options: [
             { id: "o-notif-sorties", title: "Sorties mises en avant", emoji: "🔔", roleIds: ["notif-sorties"], channelIds: [] },
-            { id: "o-notif-events", title: "Open mics et battles", emoji: "📅", roleIds: ["notif-events"], channelIds: ["battles"] },
+            { id: "o-notif-events", title: "Open mics et battles", emoji: "📅", roleIds: ["notif-events"], channelIds: ["battles", "open-mic"] },
+          ],
+        },
+        {
+          id: "q-niveau",
+          title: "Où en es-tu dans ta musique ?",
+          type: "multiple_choice",
+          singleSelect: true,
+          required: false,
+          inOnboarding: true,
+          options: [
+            { id: "o-debutant", title: "Je débute", description: "Premiers textes, premières prods", emoji: "🌱", roleIds: ["niveau-debutant"], channelIds: ["feedback", "ecriture"] },
+            { id: "o-progression", title: "Je progresse", description: "Quelques sons sortis, envie de passer un cap", emoji: "📈", roleIds: ["niveau-progression"], channelIds: ["feedback", "collabs"] },
+            { id: "o-confirme", title: "Je suis confirmé", description: "Projets réguliers, collabs sérieuses", emoji: "💼", roleIds: ["niveau-confirme"], channelIds: ["collabs", "studio-1"] },
+            { id: "o-ecoute", title: "Je ne fais pas de musique", description: "Je viens écouter et découvrir", emoji: "🎧", roleIds: [], channelIds: ["ecoute"] },
           ],
         },
       ],

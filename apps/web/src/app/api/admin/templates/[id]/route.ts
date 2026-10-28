@@ -44,11 +44,11 @@ export const POST = withAdmin<{ id: string }>(async (req, admin, { id }) => {
   if (body.action === "publish") {
     const v = validateSpec(t.spec);
     if (!v.ok) throw new HttpError(409, `Publication impossible : ${v.errors.length} erreur(s) de validation (${v.errors[0]?.message}).`);
-    await db.update(templates).set({ status: "published", publishedAt: t.publishedAt ?? new Date(), reviewNote: null, updatedAt: new Date() }).where(eq(templates.id, id));
+    await db.update(templates).set({ status: "published", publishedAt: t.publishedAt ?? new Date(), reviewNote: null, reviewedAt: new Date(), reviewedByUserId: admin.id, updatedAt: new Date() }).where(eq(templates.id, id));
   } else if (body.action === "archive") {
     await db.update(templates).set({ status: "archived", updatedAt: new Date() }).where(eq(templates.id, id));
   } else if (body.action === "reject") {
-    await db.update(templates).set({ status: "rejected", reviewNote: body.note, updatedAt: new Date() }).where(eq(templates.id, id));
+    await db.update(templates).set({ status: "rejected", reviewNote: body.note, reviewedAt: new Date(), reviewedByUserId: admin.id, updatedAt: new Date() }).where(eq(templates.id, id));
   } else {
     await db.update(templates).set({ status: "draft", updatedAt: new Date() }).where(eq(templates.id, id));
   }

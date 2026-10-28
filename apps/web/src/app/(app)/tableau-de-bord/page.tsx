@@ -1,3 +1,4 @@
+import { AccountDanger } from "@/components/app/account-danger";
 import Link from "next/link";
 import { and, desc, eq, getDb, savedTemplates, templates } from "@mys/db";
 import { getEntitlement, getUsage, listBackups, listInstallations } from "@mys/engine";
@@ -218,6 +219,9 @@ export default async function Dashboard() {
             </Reveal>
           )}
         </div>
+      </div>
+      <div className="mt-10">
+        <AccountDanger />
       </div>
     </>
   );

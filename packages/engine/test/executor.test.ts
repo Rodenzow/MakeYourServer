@@ -211,7 +211,12 @@ describe("droits et accès", () => {
     gw.state.roles.push({ id: modRole, name: "Gestion", color: 0, hoist: false, mentionable: false, permissions: toBitfield(["MANAGE_GUILD"]).toString(), position: 1, managed: false });
     gw.members.set("400000000000000004", [modRole]);
     const manager = await createUser("400000000000000004");
-    const project = await createProject(manager.id, templateSpec("projet-pro"));
+    // Projet sans Communauté Discord : « Gérer le serveur » suffit pour l’installer.
+    const spec = templateSpec("projet-pro");
+    spec.settings.community = false;
+    spec.onboarding = undefined;
+    spec.welcomeScreen = undefined;
+    const project = await createProject(manager.id, spec);
     const { installation } = await prepareInstallation(gw, { userId: manager.id, guildId: gw.state.id, source: { projectId: project.id }, options: { mode: "merge" } });
     await confirmInstallation(gw, { installationId: installation.id, userId: manager.id, confirmDestructive: false });
     gw.members.set("400000000000000004", []); // droits retirés entre-temps

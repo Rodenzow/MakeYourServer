@@ -281,6 +281,11 @@ export const THEMES = [
   "etudes",
   "roleplay",
   "professionnel",
+  "tech",
+  "art",
+  "anime",
+  "amis",
+  "sport",
   "autre",
 ] as const;
 export const THEME_LABELS: Record<(typeof THEMES)[number], string> = {
@@ -292,6 +297,11 @@ export const THEME_LABELS: Record<(typeof THEMES)[number], string> = {
   etudes: "Études",
   roleplay: "Roleplay",
   professionnel: "Projet professionnel",
+  tech: "Tech & développement",
+  art: "Art & création",
+  anime: "Anime & manga",
+  amis: "Entre amis",
+  sport: "Sport & bien-être",
   autre: "Autre",
 };
 export const SIZES = ["small", "medium", "large"] as const;

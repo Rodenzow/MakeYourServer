@@ -13,12 +13,14 @@ import {
   ilike,
   inArray,
   installations,
+  isNull,
   jobs,
   lte,
   or,
   projects,
   sql,
   subscriptions,
+  templateReports,
   templates,
   usageCounters,
   users,
@@ -166,6 +168,7 @@ export async function listAdminTemplates(status?: string) {
       official: templates.official,
       popularity: templates.popularity,
       installCount: templates.installCount,
+      viewCount: templates.viewCount,
       authorUserId: templates.authorUserId,
       authorName: users.username,
       updatedAt: templates.updatedAt,
@@ -174,6 +177,68 @@ export async function listAdminTemplates(status?: string) {
     .leftJoin(users, eq(users.id, templates.authorUserId))
     .where(status && (TEMPLATE_STATUSES as readonly string[]).includes(status) ? eq(templates.status, status) : undefined)
     .orderBy(desc(templates.updatedAt));
+}
+
+/** Compteurs affichés dans la navigation : propositions à relire et signalements ouverts. */
+export async function moderationCounts() {
+  const db = getDb();
+  const [[p], [r]] = await Promise.all([
+    db.select({ n: count() }).from(templates).where(eq(templates.status, "pending_review")),
+    db.select({ n: count() }).from(templateReports).where(isNull(templateReports.resolvedAt)),
+  ]);
+  return { pending: Number(p?.n ?? 0), reports: Number(r?.n ?? 0) };
+}
+
+/** File de modération : propositions de la communauté, avec auteur et statistiques. */
+export async function listCommunitySubmissions(status: "pending_review" | "published" | "rejected" | "archived") {
+  return getDb()
+    .select({
+      id: templates.id,
+      slug: templates.slug,
+      name: templates.name,
+      tagline: templates.tagline,
+      theme: templates.theme,
+      status: templates.status,
+      viewCount: templates.viewCount,
+      installCount: templates.installCount,
+      submittedAt: templates.submittedAt,
+      reviewedAt: templates.reviewedAt,
+      publishedAt: templates.publishedAt,
+      reviewNote: templates.reviewNote,
+      sourceProjectId: templates.sourceProjectId,
+      sourceBackupId: templates.sourceBackupId,
+      authorId: users.id,
+      authorName: users.username,
+      authorGlobalName: users.globalName,
+      authorDiscordId: users.discordId,
+    })
+    .from(templates)
+    .leftJoin(users, eq(users.id, templates.authorUserId))
+    .where(and(eq(templates.official, false), eq(templates.status, status)))
+    .orderBy(status === "pending_review" ? templates.submittedAt : desc(templates.updatedAt))
+    .limit(200);
+}
+
+/** Signalements ouverts, du plus récent au plus ancien. */
+export async function listOpenReports() {
+  return getDb()
+    .select({
+      id: templateReports.id,
+      reason: templateReports.reason,
+      details: templateReports.details,
+      createdAt: templateReports.createdAt,
+      templateId: templates.id,
+      templateName: templates.name,
+      templateSlug: templates.slug,
+      templateStatus: templates.status,
+      reporterName: users.username,
+    })
+    .from(templateReports)
+    .innerJoin(templates, eq(templates.id, templateReports.templateId))
+    .leftJoin(users, eq(users.id, templateReports.userId))
+    .where(isNull(templateReports.resolvedAt))
+    .orderBy(desc(templateReports.createdAt))
+    .limit(200);
 }
 
 export async function getTemplateById(id: string) {

@@ -12,8 +12,8 @@ export function SiteFooter() {
           </p>
         </div>
         <FooterCol title="Produit" links={[["/templates", "Templates"], ["/fonctionnement", "Fonctionnement"], ["/abonnement", "Offres"]]} />
-        <FooterCol title="Mon espace" links={[["/tableau-de-bord", "Tableau de bord"], ["/sauvegardes", "Sauvegardes"], ["/serveurs", "Serveurs"]]} />
-        <FooterCol title="Informations" links={[["/confidentialite", "Confidentialité"], ["/fonctionnement#limites", "Ce que Discord ne permet pas"]]} />
+        <FooterCol title="Mon espace" links={[["/tableau-de-bord", "Tableau de bord"], ["/sauvegardes", "Sauvegardes"], ["/publications", "Mes publications"]]} />
+        <FooterCol title="Informations" links={[["/conditions", "Conditions d’utilisation"], ["/confidentialite", "Confidentialité"], ["/conditions#publication", "Règles de publication"], ["/fonctionnement#limites", "Ce que Discord ne permet pas"]]} />
       </div>
     </footer>
   );
