@@ -3,8 +3,8 @@ import { THEME_LABELS } from "@mys/core";
 import { FEATURE_TAGS } from "@mys/core/templates";
 import type { TemplateCard } from "@/lib/data";
 import { ChannelIcon, IconEye, IconUsers } from "../icons";
-import { colorHex, cx } from "../ui";
-import { accentRgba, themeVisual } from "./theme-visuals";
+import { cx } from "../ui";
+import { themeVisual } from "./theme-visuals";
 
 const SHOWN_FEATURES = ["onboarding", "tickets", "self-roles", "forum", "automod", "events"] as const;
 
@@ -14,7 +14,6 @@ const SHOWN_FEATURES = ["onboarding", "tickets", "self-roles", "forum", "automod
  */
 export function TemplateTile({ t, compact = false, className }: { t: TemplateCard; compact?: boolean; className?: string }) {
   const v = themeVisual(t.theme);
-  const accent = t.accentColor;
   const features = SHOWN_FEATURES.filter((f) => t.features.includes(f)).slice(0, 3);
   return (
     <Link
@@ -23,20 +22,21 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
         "group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-line bg-surface transition-[transform,border-color,box-shadow] duration-300 ease-[var(--ease-snap)] hover:-translate-y-1.5 hover:border-edge",
         className,
       )}
-      style={{ boxShadow: `0 18px 40px -24px ${accentRgba(accent, 0.55)}` }}
+      style={{ boxShadow: `0 18px 40px -26px ${v.from}` }}
     >
       {/* Bannière du serveur */}
-      <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${accentRgba(accent, 0.95)} 0%, ${accentRgba(accent, 0.45)} 45%, #0a1a3a 100%)` }}>
+      <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(120deg, ${v.from} 0%, ${v.to} 70%, ${v.to}cc 100%)` }}>
         <span aria-hidden className="absolute -right-2 -bottom-4 rotate-[-8deg] text-6xl opacity-30 blur-[0.5px] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-0">
           {v.emoji}
         </span>
         <span aria-hidden className="absolute top-2 right-14 text-sm tracking-[0.5em] opacity-40">
           {v.motif}
         </span>
-        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_20%_120%,rgb(255_255_255/0.25),transparent_55%)]" />
-        <div className="absolute bottom-3 left-4 flex items-center gap-2.5">
+        <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_top,rgb(7_20_45/0.55),transparent_70%)]" />
+        <div aria-hidden className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent_30%,rgb(255_255_255/0.22)_50%,transparent_70%)] transition-transform duration-1000 ease-out group-hover:translate-x-full" />
+        <div className="absolute right-12 bottom-3 left-4 flex items-center gap-2.5">
           <span className="grid size-11 place-items-center rounded-[14px] bg-night/80 text-2xl shadow-lg ring-2 ring-white/15 backdrop-blur transition-[border-radius] duration-300 group-hover:rounded-[22px]">{v.emoji}</span>
-          <span className="max-w-[170px] truncate font-display text-[15px] font-bold text-white drop-shadow">{t.name}</span>
+          <span className="line-clamp-2 min-w-0 font-display text-[15px] leading-tight font-bold text-white drop-shadow">{t.name}</span>
         </div>
       </div>
 
@@ -61,7 +61,7 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-night-2 to-transparent" />
           {t.preview.onboarding?.first && (
             <p className="absolute right-2 bottom-2 left-2 truncate rounded-lg border border-white/10 bg-night/90 px-2 py-1 text-[11px] text-light/90 backdrop-blur">
-              <span className="font-semibold" style={{ color: colorHex(accent) }}>
+              <span className="font-semibold" style={{ color: v.to }}>
                 Accueil :
               </span>{" "}
               « {t.preview.onboarding.first} »
@@ -95,7 +95,7 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
             {t.official ? (
               <>
                 <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent font-display text-[10px] font-bold text-on-accent">M</span>
-                <span className="truncate">Make Your Server</span>
+                <span className="truncate">Équipe officielle</span>
               </>
             ) : t.author ? (
               <>
@@ -112,12 +112,18 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
             )}
           </span>
           <span className="flex shrink-0 items-center gap-3 font-mono">
-            <span className="flex items-center gap-1" title="Vues">
-              <IconEye size={13} /> {formatCount(t.viewCount)}
-            </span>
-            <span className="flex items-center gap-1" title="Installations">
-              <IconUsers size={13} /> {formatCount(t.installCount)}
-            </span>
+            {t.viewCount + t.installCount === 0 ? (
+              <span title="Contenu">{t.stats.channels} salons</span>
+            ) : (
+              <>
+                <span className="flex items-center gap-1" title="Vues">
+                  <IconEye size={13} /> {formatCount(t.viewCount)}
+                </span>
+                <span className="flex items-center gap-1" title="Installations">
+                  <IconUsers size={13} /> {formatCount(t.installCount)}
+                </span>
+              </>
+            )}
           </span>
         </div>
       </div>

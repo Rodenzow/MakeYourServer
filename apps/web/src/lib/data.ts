@@ -8,6 +8,7 @@ import {
   desc,
   eq,
   getDb,
+  getTableColumns,
   ilike,
   or,
   projectRevisions,
@@ -55,14 +56,25 @@ export async function searchTemplates(query: TemplateQuery) {
         : query.sort === "views"
           ? [desc(templates.viewCount)]
           : [desc(sql`${templates.popularity} + ${templates.installCount} * 2 + ${templates.viewCount} / 20`)];
+  // Les cartes n’ont pas besoin du contenu des messages ni de l’AutoMod : on ne
+  // transfère qu’une version allégée de la spécification (bien plus rapide).
+  const { spec: _spec, ...columns } = getTableColumns(templates);
   const rows = await getDb()
-    .select({ t: templates, author: { username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar } })
+    .select({
+      t: columns,
+      spec: sql<CardSpec>`${templates.spec} - 'messages' - 'automod' - 'serverGuide' - 'welcomeScreen' - 'features'`,
+      messageCount: sql<number>`jsonb_array_length(coalesce(${templates.spec}->'messages', '[]'::jsonb))`,
+      author: { username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar },
+    })
     .from(templates)
     .leftJoin(users, eq(users.id, templates.authorUserId))
     .where(and(...conds))
     .orderBy(...order);
-  return rows.map((r) => templateCard(r.t, r.author));
+  return rows.map((r) => templateCard({ ...r.t, spec: r.spec }, r.author, Number(r.messageCount)));
 }
+
+/** Spécification allégée utilisée par les cartes de la bibliothèque. */
+type CardSpec = Pick<ServerSpec, "meta" | "roles" | "categories" | "uncategorized" | "onboarding">;
 
 type AuthorRow = { username: string; globalName: string | null; discordId: string; avatar: string | null } | null;
 
@@ -81,7 +93,8 @@ export async function getTemplateAuthor(t: TemplateRow) {
   return publicAuthor(t, a ?? null);
 }
 
-export function templateCard(t: TemplateRow, author: AuthorRow = null) {
+export function templateCard(t: Omit<TemplateRow, "spec"> & { spec: CardSpec }, author: AuthorRow = null, messageCount = 0) {
+  const channels = t.spec.categories.reduce((n, c) => n + c.channels.length, 0) + (t.spec.uncategorized?.length ?? 0);
   return {
     id: t.id,
     slug: t.slug,
@@ -95,7 +108,7 @@ export function templateCard(t: TemplateRow, author: AuthorRow = null) {
     installCount: t.installCount,
     viewCount: t.viewCount,
     author: publicAuthor(t, author),
-    stats: specStats(t.spec),
+    stats: { channels, roles: t.spec.roles.length, messages: messageCount },
     accentColor: t.spec.meta.accentColor ?? 0x83a8f3,
     preview: {
       categories: t.spec.categories.slice(0, 4).map((c) => ({ name: c.name, channels: c.channels.slice(0, 4).map((ch) => ({ name: ch.name, type: ch.type })) })),
