@@ -91,6 +91,15 @@ export const templates = pgTable(
     /** Vues de la fiche publique (une par visiteur et par jour au plus). */
     viewCount: integer("view_count").notNull().default(0),
     reviewNote: text("review_note"),
+    /** Mis en avant par l’équipe (« Sélection de l’équipe »). */
+    featured: boolean("featured").notNull().default(false),
+    /** Template d’origine quand une proposition remixe un template publié. */
+    basedOnTemplateId: uuid("based_on_template_id"),
+    /** Avis : nombre et somme des notes visibles (dénormalisés pour les cartes). */
+    ratingCount: integer("rating_count").notNull().default(0),
+    ratingSum: integer("rating_sum").notNull().default(0),
+    /** Dernière modification du CONTENU (spécification) : sert aux avis de mise à jour. */
+    specUpdatedAt: ts("spec_updated_at"),
     submittedAt: ts("submitted_at"),
     reviewedAt: ts("reviewed_at"),
     reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, { onDelete: "set null" }),
@@ -99,6 +108,24 @@ export const templates = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index("templates_status_idx").on(t.status), index("templates_theme_idx").on(t.theme), index("templates_author_idx").on(t.authorUserId)],
+);
+
+/** Avis des membres sur les templates publiés (un par membre et par template). */
+export const templateReviews = pgTable(
+  "template_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    templateId: uuid("template_id").notNull().references(() => templates.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** 1 à 5 */
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    /** Masqué par la modération. */
+    hiddenAt: ts("hidden_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("template_reviews_unique").on(t.templateId, t.userId), index("template_reviews_template_idx").on(t.templateId, t.createdAt)],
 );
 
 /** Signalements de templates publics (contenu inapproprié, copie sans accord…). */
@@ -517,4 +544,79 @@ export const errorLogs = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("error_logs_created_idx").on(t.createdAt)],
+);
+
+/* ---------------------------------------------------------------------------
+ * Collaboration, messages programmés, audits
+ * ------------------------------------------------------------------------- */
+
+/** Co-gestionnaires d’un projet (en plus de son propriétaire). */
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** editor : peut modifier, publier et installer (droits Discord revérifiés). */
+    role: text("role").notNull().default("editor"),
+    addedByUserId: uuid("added_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.userId] }), index("project_members_user_idx").on(t.userId)],
+);
+
+/** Liens d’invitation à co-gérer un projet (jeton haché, usage unique, expiration). */
+export const projectInvites = pgTable(
+  "project_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+    usedByUserId: uuid("used_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("project_invites_project_idx").on(t.projectId)],
+);
+
+/** Messages programmés envoyés par le bot (Premium). */
+export const scheduledMessages = pgTable(
+  "scheduled_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    channelName: text("channel_name").notNull().default(""),
+    content: text("content").notNull().default(""),
+    embedTitle: text("embed_title"),
+    embedDescription: text("embed_description"),
+    embedColor: integer("embed_color"),
+    /** none | daily | weekly */
+    repeat: text("repeat").notNull().default("none"),
+    nextRunAt: ts("next_run_at"),
+    lastSentAt: ts("last_sent_at"),
+    /** active | paused | done | failed */
+    status: text("status").notNull().default("active"),
+    lastError: text("last_error"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("scheduled_messages_due_idx").on(t.status, t.nextRunAt), index("scheduled_messages_user_idx").on(t.userId, t.guildId)],
+);
+
+/** Audits de serveur (« santé ») : note et problèmes détectés. */
+export const serverAudits = pgTable(
+  "server_audits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    guildId: text("guild_id").notNull(),
+    guildName: text("guild_name").notNull(),
+    score: integer("score").notNull(),
+    report: jsonb("report").$type<unknown>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("server_audits_user_guild_idx").on(t.userId, t.guildId, t.createdAt)],
 );

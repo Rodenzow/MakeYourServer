@@ -15,6 +15,13 @@
       "when": 1793178829018,
       "tag": "0001_communaute",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793986659524,
+      "tag": "0002_communaute_v2",
+      "breakpoints": true
     }
   ]
 }

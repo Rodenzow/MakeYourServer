@@ -20,7 +20,7 @@ export const PUT = withAdmin<{ id: string }>(async (req, admin, { id }) => {
   if (clash) throw new HttpError(409, "Ce slug est déjà utilisé par un autre template.");
   const [row] = await db
     .update(templates)
-    .set({ ...body, spec, features, updatedAt: new Date() })
+    .set({ ...body, spec, features, specUpdatedAt: new Date(), updatedAt: new Date() })
     .where(eq(templates.id, id))
     .returning({ status: templates.status });
   // Un template publié qui devient invalide est repassé en brouillon : il ne doit pas être installable.
