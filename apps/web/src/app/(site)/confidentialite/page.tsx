@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui";
-import { env } from "@/lib/env";
+import { analyticsToken, env } from "@/lib/env";
 
 export const metadata = { title: "Confidentialité", description: "Données enregistrées par Make Your Server, durées de conservation et vos droits." };
 
@@ -40,6 +40,12 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p>Aucun cookie publicitaire ni outil de suivi tiers n’est utilisé.</p>
+        {analyticsToken() && (
+          <p>
+            <strong>Mesure d’audience sans cookie</strong> : Cloudflare Web Analytics compte les pages vues de façon anonyme et agrégée (page, pays, type de navigateur). Aucun cookie n’est déposé,
+            aucun identifiant n’est stocké sur votre appareil et vous n’êtes pas suivi d’un site à l’autre.
+          </p>
+        )}
       </Section>
 
       <Section title="Ce que nous ne faisons pas">
@@ -53,7 +59,7 @@ export default function PrivacyPage() {
 
       <Section title="Prestataires">
         <ul className="list-disc space-y-1 pl-5">
-          <li>Cloudflare (hébergement du site et du bot), Supabase (base de données).</li>
+          <li>Cloudflare (hébergement du site et du bot{analyticsToken() ? ", mesure d’audience sans cookie" : ""}), Supabase (base de données).</li>
           <li>Discord (connexion, bot), Stripe (paiements par carte), Anthropic (fonctions d’IA, uniquement à votre demande).</li>
         </ul>
       </Section>

@@ -12,3 +12,4 @@ export * from "./services/billing";
 export * from "./services/scheduled-messages";
 export * from "./sandbox";
 export * from "./services/audit";
+export * from "./alerts";

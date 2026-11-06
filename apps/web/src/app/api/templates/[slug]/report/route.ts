@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { and, audit, count, eq, getDb, gte, templateReports, templates } from "@mys/db";
+import { sendAlert } from "@mys/engine";
 import { HttpError, json, parseBody, withUser } from "@/lib/api";
+import { env } from "@/lib/env";
 import { REPORT_REASONS } from "@/lib/publications";
 
 const Body = z.object({
@@ -21,5 +23,15 @@ export const POST = withUser<{ slug: string }>(async (req, user, { slug }) => {
   if (dup) return json({ ok: true, duplicate: true });
   await db.insert(templateReports).values({ templateId: t.id, userId: user.id, reason: body.reason, details: body.details || null });
   await audit({ actorUserId: user.id, actorType: "user", action: "template.report", targetType: "template", targetId: t.id, metadata: { reason: body.reason } });
+  // Alerte facultative aux administrateurs (ALERT_WEBHOOK_URL) : ni pseudo ni texte libre.
+  await sendAlert({
+    title: "🚩 Nouveau signalement de template",
+    level: "warning",
+    fields: [
+      { name: "Template", value: slug },
+      { name: "Motif", value: REPORT_REASONS[body.reason] },
+    ],
+    url: env.appUrl.startsWith("https://") ? `${env.appUrl}/admin/templates/${t.id}` : undefined,
+  });
   return json({ ok: true }, 201);
 });

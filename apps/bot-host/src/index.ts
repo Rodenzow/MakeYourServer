@@ -1,4 +1,5 @@
 import { Container, getContainer } from "@cloudflare/containers";
+import { decideHealth, INITIAL_HEALTH, isDiscordWebhook, minutes, scrub, type HealthState } from "./health";
 
 /**
  * Hôte du bot Make Your Server sur Cloudflare.
@@ -18,9 +19,31 @@ interface Env {
   APP_URL: string;
   BOT_MEMBER_EVENTS?: string;
   DISCORD_DEV_GUILD_ID?: string;
+  /** Facultatif : webhook Discord du salon des administrateurs (alertes). */
+  ALERT_WEBHOOK_URL?: string;
 }
 
 const CONFIG_KEY = "configFingerprint";
+const HEALTH_KEY = "healthState";
+
+/** Envoie un message au webhook Discord des administrateurs. Ne lève jamais d’erreur. */
+async function sendAlert(webhookUrl: string | undefined, embed: { title: string; description: string; color: number; fields?: { name: string; value: string; inline?: boolean }[] }) {
+  if (!isDiscordWebhook(webhookUrl)) return false;
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: "Make Your Server — alertes", allowed_mentions: { parse: [] }, embeds: [{ ...embed, timestamp: new Date().toISOString() }] }),
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) console.warn(`Alerte refusée par Discord (HTTP ${res.status}).`);
+    return res.ok;
+  } catch {
+    // L’adresse du webhook contient un secret : elle n’est jamais écrite dans les journaux.
+    console.warn("Alerte impossible à envoyer.");
+    return false;
+  }
+}
 
 async function fingerprint(values: Record<string, string>): Promise<string> {
   const data = new TextEncoder().encode(JSON.stringify(Object.entries(values).sort(([a], [b]) => a.localeCompare(b))));
@@ -70,7 +93,40 @@ export class BotContainer extends Container<Env> {
       APP_URL: env.APP_URL,
       BOT_MEMBER_EVENTS: env.BOT_MEMBER_EVENTS ?? "true",
       ...(env.DISCORD_DEV_GUILD_ID ? { DISCORD_DEV_GUILD_ID: env.DISCORD_DEV_GUILD_ID } : {}),
+      ...(env.ALERT_WEBHOOK_URL ? { ALERT_WEBHOOK_URL: env.ALERT_WEBHOOK_URL } : {}),
     };
+  }
+
+  /**
+   * Mémorise le résultat d’un contrôle (cron) et prévient les administrateurs :
+   * une alerte quand le bot n’est plus « connecté » deux contrôles de suite, puis un
+   * message quand il est rétabli. Rien n’est répété à chaque contrôle.
+   */
+  async recordHealth(statut: string, detail?: string): Promise<HealthState> {
+    const now = Date.now();
+    const prev = (await this.ctx.storage.get<HealthState>(HEALTH_KEY)) ?? INITIAL_HEALTH;
+    const decision = decideHealth(prev, statut, now);
+    let sent = true;
+    if (decision.alert === "down") {
+      const fields = [{ name: "État", value: scrub(statut) || "inconnu" }];
+      if (detail) fields.push({ name: "Détail", value: scrub(detail) });
+      sent = await sendAlert(this.env.ALERT_WEBHOOK_URL, {
+        title: "🔴 Le bot n’est plus connecté à Discord",
+        description: `${decision.next.failures} contrôles de suite en échec (depuis environ ${minutes(now - (decision.next.since ?? now))} minute(s)). Journaux : Workers & Pages → make-your-server-bot → Logs.`,
+        color: 0xff5f57,
+        fields,
+      });
+    } else if (decision.alert === "up") {
+      sent = await sendAlert(this.env.ALERT_WEBHOOK_URL, {
+        title: "🟢 Le bot est de nouveau connecté à Discord",
+        description: `Rétabli après environ ${minutes(now - (prev.since ?? now))} minute(s) d’interruption.`,
+        color: 0x5fd39a,
+      });
+    }
+    // Sans webhook configuré : l’état est suivi, mais aucune alerte n’est « en attente ».
+    const next = !isDiscordWebhook(this.env.ALERT_WEBHOOK_URL) ? { ...decision.next, alerted: false } : sent ? decision.next : decision.ifUnsent;
+    await this.ctx.storage.put(HEALTH_KEY, next);
+    return next;
   }
 
   /**
@@ -121,11 +177,22 @@ export default {
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     const stub = bot(env);
     ctx.waitUntil(
-      stub
-        .refreshIfConfigChanged()
-        .then(() => stub.fetch(new Request("http://bot/sante")))
-        .then((r) => console.log(`Battement de cœur du bot : HTTP ${r.status}`))
-        .catch((e) => console.error("Bot injoignable :", e)),
+      (async () => {
+        let statut = "injoignable";
+        let detail: string | undefined;
+        try {
+          await stub.refreshIfConfigChanged();
+          const r = await stub.fetch(new Request("http://bot/sante"));
+          console.log(`Battement de cœur du bot : HTTP ${r.status}`);
+          const body = (await r.json().catch(() => null)) as { statut?: string; erreur?: string } | null;
+          statut = body?.statut ?? `HTTP ${r.status}`;
+          detail = body?.erreur;
+        } catch (e) {
+          console.error("Bot injoignable :", e);
+          detail = e instanceof Error ? e.message : String(e);
+        }
+        await stub.recordHealth(statut, detail).catch((e) => console.error("Suivi de l’état impossible :", e));
+      })(),
     );
   },
 } satisfies ExportedHandler<Env>;

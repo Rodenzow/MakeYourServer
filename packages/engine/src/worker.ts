@@ -23,6 +23,7 @@ import { LeaseLostError, RetryLaterError, runInstallation } from "./executor";
 import { createBackup, purgeExpiredBackups, QuotaError } from "./services/backups";
 import { JOB_INSTALL } from "./services/installs";
 import { startScheduledMessages } from "./services/scheduled-messages";
+import { alertInstallationProblem } from "./alerts";
 
 export const JOB_BACKUP = "backup.create";
 
@@ -115,10 +116,12 @@ export function startWorker(opts: WorkerOptions) {
         await failJob(job, instanceId, message, { retry: true });
         if (!(e instanceof RetryLaterError)) await logError("worker", `Tâche ${job.type} en échec`, { jobId: job.id, error: message });
         if (job.type === JOB_INSTALL && job.attempts >= job.maxAttempts) {
-          await getDb()
+          const [abandoned] = await getDb()
             .update(installations)
             .set({ status: "failed", error: `Abandon après ${job.attempts} tentatives : ${message}`, finishedAt: new Date() })
-            .where(eq(installations.id, String(job.payload.installationId)));
+            .where(eq(installations.id, String(job.payload.installationId)))
+            .returning({ id: installations.id, guildId: installations.guildId, kind: installations.kind, dryRun: installations.dryRun });
+          if (abandoned) void alertInstallationProblem({ installationId: abandoned.id, guildId: abandoned.guildId, kind: abandoned.kind, status: "failed", dryRun: abandoned.dryRun, reason: `Abandon après ${job.attempts} tentatives : ${message}` });
         }
       }
     }

@@ -147,11 +147,15 @@ jobs:
           BOT_MEMBER_EVENTS: ${{ vars.BOT_MEMBER_EVENTS }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
           LEGAL_EDITOR: ${{ vars.LEGAL_EDITOR }}
+          # Facultatifs : ignorés s’ils sont vides.
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          CF_ANALYTICS_TOKEN: ${{ vars.CF_ANALYTICS_TOKEN }}
         run: |
           f="$RUNNER_TEMP/site-secrets.json"
           node scripts/ci/secrets-json.mjs "$f" APP_URL DATABASE_URL APP_ENCRYPTION_KEY ADMIN_DISCORD_IDS \
             DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_BOT_TOKEN ANTHROPIC_API_KEY AI_MODEL \
-            STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET BOT_MEMBER_EVENTS CONTACT_EMAIL LEGAL_EDITOR
+            STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET BOT_MEMBER_EVENTS CONTACT_EMAIL LEGAL_EDITOR \
+            ALERT_WEBHOOK_URL CF_ANALYTICS_TOKEN
           (cd apps/web && pnpm exec wrangler secret bulk "$f")
           rm -f "$f"
 
@@ -191,10 +195,12 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_DEV_GUILD_ID: ${{ vars.DISCORD_DEV_GUILD_ID }}
           BOT_MEMBER_EVENTS: ${{ vars.BOT_MEMBER_EVENTS }}
+          # Facultatif : alertes (bot hors ligne, installations en échec). Ignoré s’il est vide.
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
         run: |
           f="$RUNNER_TEMP/bot-secrets.json"
           node scripts/ci/secrets-json.mjs "$f" APP_URL DATABASE_URL DISCORD_CLIENT_ID DISCORD_BOT_TOKEN \
-            DISCORD_DEV_GUILD_ID BOT_MEMBER_EVENTS
+            DISCORD_DEV_GUILD_ID BOT_MEMBER_EVENTS ALERT_WEBHOOK_URL
           (cd apps/bot-host && pnpm exec wrangler secret bulk "$f")
           rm -f "$f"
 
