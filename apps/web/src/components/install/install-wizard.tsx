@@ -7,7 +7,8 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { MODE_LABELS, type ConflictResolution, type InstallMode, type Plan, type PlanOp, type ServerSpec } from "@mys/core";
 import { BeforeAfter } from "../landing/before-after";
 import { RoleList, type TreeCategory } from "../server-tree";
-import { Badge, Button, Notice, cx } from "../ui";
+import { Badge, Button, HelpLink, Notice, buttonClass, cx } from "../ui";
+import { Term } from "../help/term";
 import { IconAlert, IconArchive, IconArrowRight, IconBot, IconCheck, IconInfo, IconShield, IconTrash } from "../icons";
 
 interface Guild {
@@ -46,19 +47,27 @@ export function InstallWizard({ source, validationErrors = [], sandbox }: { sour
   const [includeMessages, setIncludeMessages] = useState(true);
   const [republish, setRepublish] = useState<string[]>([]);
 
-  const steps: Array<[Step, string]> = source.kind === "backup" ? [["mode", "Options"], ["plan", "Analyse et confirmation"]] : [["server", "Serveur"], ["mode", "Mode"], ["plan", "Analyse et confirmation"]];
+  const steps: Array<[Step, string]> = source.kind === "backup" ? [["mode", "Choisir les options"], ["plan", "Vérifier et lancer"]] : [["server", "Choisir le serveur"], ["mode", "Choisir le mode"], ["plan", "Vérifier et lancer"]];
 
   return (
     <div>
-      <p className="eyebrow">{source.kind === "backup" ? "Restauration" : "Installation"}</p>
-      <h1 className="mt-1 text-3xl font-bold">{source.kind === "backup" ? `Restaurer « ${source.name} »` : `Installer « ${source.name} »`}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="eyebrow">{source.kind === "backup" ? "Restauration" : "Installation"}</p>
+          <h1 className="mt-1 text-3xl font-bold">{source.kind === "backup" ? `Restaurer « ${source.name} »` : `Installer « ${source.name} »`}</h1>
+          <p className="mt-2 max-w-2xl text-ink">
+            {source.kind === "backup" ? "Deux étapes." : "Trois étapes."} Rien n’est modifié sur Discord avant que vous ayez vu l’<Term id="analyse">analyse</Term> et confirmé.
+          </p>
+        </div>
+        <HelpLink href={source.kind === "backup" ? "/aide#restaurer" : "/aide#modes"} />
+      </div>
       {sandbox && <Notice tone="warning" className="mt-4" title="Mode bac à sable">Ce site tourne avec un serveur Discord simulé (DISCORD_SANDBOX). Aucune action n’est envoyée à Discord.</Notice>}
       {validationErrors.length > 0 && (
         <Notice tone="danger" className="mt-4" title="Le projet contient des erreurs">
           Corrigez-les dans l’éditeur avant d’installer : {validationErrors.slice(0, 3).join(" · ")}
         </Notice>
       )}
-      <ol className="mt-6 flex flex-wrap items-center gap-2" aria-label="Étapes">
+      <ol className="mt-6 flex flex-wrap items-center gap-2" aria-label={source.kind === "backup" ? "Étapes de la restauration" : "Étapes de l’installation"}>
         {steps.map(([k, label], i) => {
           const idx = steps.findIndex(([s]) => s === step);
           const done = i < idx;
@@ -70,6 +79,7 @@ export function InstallWizard({ source, validationErrors = [], sandbox }: { sour
                 {current && <motion.span layoutId="wizard-step" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
                 <span className="relative flex size-5 items-center justify-center rounded-full font-mono text-xs">{done ? <IconCheck size={13} /> : i + 1}</span>
                 <span className="relative">{label}</span>
+                <span className="sr-only">{done ? " (terminée)" : current ? " (étape actuelle)" : " (à venir)"}</span>
               </span>
             </li>
           );
@@ -158,7 +168,9 @@ function ServerStep({ onPick }: { onPick: (g: Guild) => void }) {
             {loading ? "Actualisation…" : "Actualiser"}
           </Button>
         </div>
-        <p className="mt-1 text-sm text-muted">Seuls les serveurs où vous avez « Gérer le serveur » apparaissent. Vos droits seront revérifiés au moment de l’installation.</p>
+        <p className="mt-1 text-sm text-muted">
+          Seuls les serveurs où vous avez la permission <Term id="gerer-serveur">« Gérer le serveur »</Term> apparaissent. Le <Term id="bot">bot</Term> doit être présent sur le serveur choisi.
+        </p>
         {error && <Notice tone="danger" className="mt-4">{error}</Notice>}
         {needsReauth && (
           <Notice tone="warning" className="mt-4" title="Reconnexion nécessaire">
@@ -171,52 +183,63 @@ function ServerStep({ onPick }: { onPick: (g: Guild) => void }) {
               {g.iconUrl ? <Image src={g.iconUrl} alt="" width={40} height={40} className="rounded-xl" /> : <span className="flex size-10 items-center justify-center rounded-xl bg-night font-display font-bold text-light">{g.name.slice(0, 1)}</span>}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{g.name}</p>
-                <p className="text-xs text-muted">{g.owner ? "Propriétaire" : "Gestionnaire"} · {g.botPresent ? <span className="text-success">bot présent</span> : <span className="text-warning">bot absent</span>}</p>
+                <p className="text-xs text-muted">
+                  {g.owner ? "Vous êtes propriétaire" : "Vous êtes gestionnaire"} · {g.botPresent ? <span className="text-success">bot présent</span> : <span className="text-warning">bot pas encore invité</span>}
+                </p>
               </div>
               {g.botPresent ? (
                 <Button size="sm" onClick={() => onPick(g)}>
                   Choisir <IconArrowRight size={14} />
                 </Button>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  <a href={g.inviteUrl ?? "#"} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-edge bg-light px-3 text-sm font-semibold">
-                    <IconBot size={15} /> Inviter le bot
-                  </a>
-                  <button type="button" className="text-xs font-semibold text-muted underline" onClick={() => load(true)}>
-                    C’est fait
-                  </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {g.inviteUrl && (
+                    <a href={g.inviteUrl} target="_blank" rel="noreferrer" className={buttonClass("primary", "sm")}>
+                      <IconBot size={15} /> Inviter le bot
+                      <span className="sr-only"> sur {g.name} (ouvre Discord dans un nouvel onglet)</span>
+                    </a>
+                  )}
+                  <Button variant="secondary" size="sm" onClick={() => load(true)} disabled={loading}>
+                    J’ai invité le bot
+                  </Button>
                 </div>
               )}
             </li>
           ))}
           {guilds?.length === 0 && !needsReauth && <li className="panel p-6 text-center text-sm text-muted">Aucun serveur où vous avez les droits de gestion. Créez-en un (voir à droite), puis actualisez.</li>}
-          {!guilds && !error && <li className="panel h-16 animate-pulse" />}
+          {!guilds && !error && (
+            <li className="panel h-16 animate-pulse">
+              <span className="sr-only">Chargement de vos serveurs…</span>
+            </li>
+          )}
         </ul>
       </div>
       <aside className="space-y-4">
         <div className="brick p-5">
           <h3 className="font-display font-semibold">Pas encore de serveur ?</h3>
-          <p className="mt-1 text-sm text-muted">Discord ne permet plus aux bots de créer un serveur : c’est vous qui le créez, en 30 secondes.</p>
+          <p className="mt-1 text-sm text-muted">Discord ne permet plus aux bots de créer un serveur. C’est vous qui le créez, en 30 secondes :</p>
           <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
             <li>Dans Discord, cliquez sur le <strong>+</strong> en bas de la liste des serveurs.</li>
             <li>Choisissez « Créer le mien », puis « Pour moi et mes amis ».</li>
             <li>Donnez-lui un nom et validez.</li>
             <li>Revenez ici et cliquez sur « Actualiser ».</li>
           </ol>
-          <p className="mt-3 text-xs text-muted">Un serveur tout neuf est idéal : choisissez ensuite le mode « Serveur vide ».</p>
+          <p className="mt-3 text-xs text-muted">Un serveur tout neuf est idéal : à l’étape suivante, choisissez le mode « Serveur vide ».</p>
         </div>
         <div className="panel p-5 text-sm">
           <p className="flex items-center gap-2 font-semibold">
             <IconShield size={16} /> Quelles permissions pour le bot ?
           </p>
           <p className="mt-2 text-muted">
-            Le lien d’invitation demande « Administrateur » : c’est le seul moyen d’activer la Communauté et d’accorder toutes les permissions prévues par vos rôles (Discord interdit d’accorder une permission qu’on ne possède pas). Vous pourrez la retirer après l’installation ; les boutons du serveur continueront de fonctionner avec « Gérer les rôles ».
+            Le lien d’invitation demande la permission <Term id="administrateur">Administrateur</Term>. Pourquoi ? Discord interdit à un bot de donner un droit qu’il n’a pas, et seul un administrateur peut activer la <Term id="communaute">Communauté</Term>.
           </p>
+          <p className="mt-2 text-muted">Après l’installation, vous pourrez la lui retirer : les boutons du serveur continueront de fonctionner avec « Gérer les rôles ».</p>
           {guilds?.find((g) => !g.botPresent)?.inviteUrlMinimal && (
             <p className="mt-2 text-muted">
               Préférez des permissions limitées ?{" "}
               <a className="font-semibold text-fg underline" href={guilds.find((g) => !g.botPresent)!.inviteUrlMinimal!} target="_blank" rel="noreferrer">
                 Invitation minimale
+                <span className="sr-only"> (nouvel onglet)</span>
               </a>{" "}
               (l’analyse vous dira ce qui manque).
             </p>
@@ -254,13 +277,13 @@ function ModeStep(p: {
   const modes: Array<[InstallMode, string, string]> =
     p.source.kind === "backup"
       ? [
-          ["merge", "Restaurer l’ensemble", "Les éléments encore présents reprennent l’état de la sauvegarde ; les éléments disparus sont recréés. Rien n’est supprimé."],
-          ["targeted", "Restauration sélective (Premium)", "Choisissez précisément les salons, catégories et rôles à restaurer."],
+          ["merge", "Restaurer l’ensemble", "Ce qui existe encore reprend ses réglages sauvegardés. Ce qui a disparu est recréé. Rien n’est supprimé."],
+          ["targeted", "Restauration sélective (Premium)", "Vous choisissez précisément les salons, catégories et rôles à restaurer."],
         ]
       : [
-          ["empty", MODE_LABELS.empty, "Pour un serveur tout neuf : les salons par défaut homonymes sont réutilisés et configurés."],
-          ["merge", MODE_LABELS.merge, "Ajoute le projet en conservant tout l’existant. Les éléments homonymes sont réutilisés sans modification."],
-          ["targeted", MODE_LABELS.targeted, "N’applique que les éléments choisis (et ce dont ils dépendent)."],
+          ["empty", MODE_LABELS.empty, "Si un salon créé par Discord au départ porte le même nom qu’un salon du projet, il est réutilisé et configuré."],
+          ["merge", MODE_LABELS.merge, "Votre projet s’ajoute. Tout ce qui existe déjà est conservé tel quel."],
+          ["targeted", MODE_LABELS.targeted, "N’installe que les éléments que vous cochez, plus ce dont ils ont besoin pour fonctionner."],
         ];
   return (
     <div className="space-y-8">
@@ -268,14 +291,25 @@ function ModeStep(p: {
         Serveur : <strong className="text-fg">{p.guild.name}</strong>
       </p>
       <fieldset>
-        <legend className="text-xl font-bold">Comment installer ?</legend>
+        <legend className="text-xl font-bold">{p.source.kind === "backup" ? "Que restaurer ?" : "Comment installer ?"}</legend>
+        <p className="mt-1 text-sm text-muted">
+          {p.source.kind === "backup" ? (
+            <>
+              Il faut être <Term id="administrateur">Administrateur</Term> ou propriétaire du serveur pour restaurer. Une <Term id="sauvegarde-securite">sauvegarde de sécurité</Term> est prise juste avant.
+            </>
+          ) : (
+            <>
+              Le mode décide de ce qui arrive à ce qui existe déjà sur votre serveur. Serveur neuf : <Term id="mode-serveur-vide">Serveur vide</Term>. Serveur déjà utilisé : <Term id="mode-fusion">Ajout</Term>. Dans tous les cas, rien n’est supprimé sans votre accord.
+            </>
+          )}
+        </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {modes.map(([k, label, desc]) => (
             <label key={k} className={cx("relative cursor-pointer rounded-[16px] border p-4 transition-all duration-300 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-light", p.mode === k ? "-translate-y-0.5 border-light bg-surface shadow-[4px_4px_0_0_rgb(131_168_243/0.35)]" : "border-line bg-surface hover:border-edge")}>
               <input type="radio" name="mode" value={k} checked={p.mode === k} onChange={() => p.setMode(k)} className="sr-only" />
               <span className="flex items-start justify-between gap-2">
                 <span className="font-display text-lg font-semibold">{label}</span>
-                <span className={cx("flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors", p.mode === k ? "border-light bg-accent text-on-accent" : "border-line")}>{p.mode === k && <IconCheck size={12} />}</span>
+                <span className={cx("flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors", p.mode === k ? "border-light bg-accent text-on-accent" : "border-control")}>{p.mode === k && <IconCheck size={12} />}</span>
               </span>
               {RECOMMENDED[k] && <span className="mt-1 inline-block rounded-md bg-blue/15 px-1.5 py-0.5 text-[11px] font-semibold text-blue-strong">{RECOMMENDED[k]}</span>}
               <span className="mt-1.5 block text-sm text-muted">{desc}</span>
@@ -296,16 +330,16 @@ function ModeStep(p: {
                 {p.existingRoles === "delete" ? ", rôles supprimés" : ", rôles conservés"} · messages {p.includeMessages ? "publiés" : "non publiés"}
               </span>
             </span>
-            <span className="text-sm font-semibold text-light transition-transform group-open:rotate-180">⌄</span>
+            <span aria-hidden className="text-sm font-semibold text-light transition-transform group-open:rotate-180">⌄</span>
           </summary>
         <div className="mt-4 grid gap-6 md:grid-cols-2">
           <fieldset className="panel p-4">
-            <legend className="px-1 font-semibold">Salons existants hors projet</legend>
+            <legend className="px-1 font-semibold">Salons déjà présents qui ne sont pas dans le projet</legend>
             {(
               [
                 ["keep", "Les conserver tels quels", "Recommandé.", <IconShield key="k" size={16} />],
-                ["archive", "Les archiver", "Déplacés dans « 📦 Archives » et masqués aux membres ; tout l’historique est conservé.", <IconArchive key="a" size={16} />],
-                ["delete", "Les supprimer définitivement", "Irréversible : l’historique des messages est perdu. Confirmation écrite requise.", <IconTrash key="d" size={16} />],
+                ["archive", "Les archiver", "Rangés dans « 📦 Archives » et cachés aux membres. Tous les messages sont conservés.", <IconArchive key="a" size={16} />],
+                ["delete", "Les supprimer définitivement", "Irréversible : leurs messages sont perdus. Vous devrez retaper le nom du serveur.", <IconTrash key="d" size={16} />],
               ] as const
             ).map(([k, label, hint, icon]) => (
               <label key={k} className="mt-2 flex cursor-pointer gap-3 rounded-lg p-2 hover:bg-mist">
@@ -320,7 +354,7 @@ function ModeStep(p: {
             ))}
           </fieldset>
           <fieldset className="panel p-4">
-            <legend className="px-1 font-semibold">Rôles existants hors projet</legend>
+            <legend className="px-1 font-semibold">Rôles déjà présents qui ne sont pas dans le projet</legend>
             <label className="mt-2 flex cursor-pointer gap-3 rounded-lg p-2 hover:bg-mist">
               <input type="radio" name="roles" checked={p.existingRoles === "keep"} onChange={() => p.setExistingRoles("keep")} className="mt-1 accent-[var(--color-blue)]" />
               <span className="text-sm">
@@ -330,7 +364,7 @@ function ModeStep(p: {
             <label className="mt-1 flex cursor-pointer gap-3 rounded-lg p-2 hover:bg-mist">
               <input type="radio" name="roles" checked={p.existingRoles === "delete"} onChange={() => p.setExistingRoles("delete")} className="mt-1 accent-[var(--color-blue)]" />
               <span className="text-sm">
-                <span className="font-semibold text-danger">Les supprimer</span> <span className="text-muted">— retirés à tous leurs membres. Confirmation écrite requise.</span>
+                <span className="font-semibold text-danger">Les supprimer</span> <span className="text-muted">— retirés à tous leurs membres. Vous devrez retaper le nom du serveur.</span>
               </span>
             </label>
             <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm">
@@ -361,12 +395,12 @@ function ModeStep(p: {
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-edge bg-surface/60 p-4 transition-colors hover:border-blue">
         <input type="checkbox" checked={p.dryRun} onChange={(e) => p.setDryRun(e.target.checked)} className="mt-1 accent-[var(--color-blue)]" />
         <span className="text-sm">
-          <span className="font-semibold">Faire d’abord une simulation (recommandé la première fois)</span>
-          <span className="block text-muted">Rejoue toute l’installation sur une copie en mémoire de votre serveur, avec les mêmes contrôles et limites. Aucune modification n’est envoyée à Discord.</span>
+          <span className="font-semibold">Faire d’abord une simulation (conseillé la première fois)</span>
+          <span className="block text-muted">L’installation est rejouée sur une copie de votre serveur, avec les mêmes contrôles. Rien n’est envoyé à Discord. Vous pourrez ensuite installer pour de vrai.</span>
         </span>
       </label>
 
-      <div className="flex justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {p.onBack ? (
           <Button variant="ghost" onClick={p.onBack}>
             ← Changer de serveur
@@ -374,9 +408,12 @@ function ModeStep(p: {
         ) : (
           <span />
         )}
-        <Button onClick={p.onNext} disabled={p.mode === "targeted" && p.selected.length === 0}>
-          Analyser le serveur <IconArrowRight size={16} />
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button onClick={p.onNext} disabled={p.mode === "targeted" && p.selected.length === 0}>
+            Analyser le serveur <IconArrowRight size={16} />
+          </Button>
+          <p className="text-xs text-muted">{p.mode === "targeted" && p.selected.length === 0 ? "Cochez au moins un élément pour continuer." : "L’analyse lit votre serveur sans rien modifier."}</p>
+        </div>
       </div>
     </div>
   );
@@ -585,7 +622,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
       {plan.conflicts.length > 0 && (
         <section>
           <h3 className="text-lg font-bold">Éléments déjà présents sur le serveur ({plan.conflicts.length})</h3>
-          <p className="text-sm text-muted">Pour chacun, choisissez quoi faire. Par défaut, rien d’existant n’est modifié en mode « Ajout ».</p>
+          <p className="text-sm text-muted">Ces éléments portent le même nom qu’un élément du projet. Pour chacun, choisissez quoi faire. En mode « Ajout », ils sont réutilisés sans être modifiés, sauf si vous changez ce choix.</p>
           <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-surface">
             {plan.conflicts.map((c) => (
               <li key={c.localId} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
@@ -626,7 +663,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
 
       <section>
         <h3 className="text-lg font-bold">Opérations prévues ({activeOps.length})</h3>
-        <p className="text-sm text-muted">Chaque ligne deviendra une étape suivie en direct. Les éléments facultatifs peuvent être décochés.</p>
+        <p className="text-sm text-muted">Chaque ligne deviendra une étape que vous suivrez en direct. Les lignes avec une case à cocher sont facultatives : décochez-les pour les ignorer.</p>
         <div className="mt-3 space-y-3">
           {["delete", "archive", "existing", "create", "update", "none"].map((impact) => {
             const ops = groups.get(impact);
@@ -642,7 +679,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
                       {o.optional ? (
                         <input type="checkbox" className="mt-1 accent-[var(--color-blue)]" checked={!excluded.includes(o.key)} onChange={(e) => setExcluded(e.target.checked ? excluded.filter((x) => x !== o.key) : [...excluded, o.key])} aria-label={o.label} />
                       ) : (
-                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-blue" />
+                        <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-blue" />
                       )}
                       <span>
                         {o.label}
@@ -674,12 +711,32 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
       )}
 
       <section className="brick p-5">
-        <div className="flex items-start gap-3 text-sm">
-          <IconShield className="mt-0.5 shrink-0 text-blue-strong" />
-          <p>
-            Avant toute modification, le bot enregistre une <strong>sauvegarde de sécurité</strong> de la configuration accessible (rôles, salons, permissions, réglages). Elle permet de remettre en place la structure, mais pas l’historique des messages d’un salon supprimé : ce n’est pas une restauration intégrale garantie.
-          </p>
-        </div>
+        <h3 className="text-lg font-bold">Ce qui va se passer quand vous lancerez</h3>
+        <ol className="mt-3 space-y-2 text-sm">
+          <li className="flex gap-3">
+            <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full border border-edge bg-night font-mono text-xs font-bold text-light">1</span>
+            <span>
+              <IconShield size={15} className="mr-1 inline align-[-2px] text-blue-strong" />
+              {dryRun ? (
+                "Rien n’est envoyé à Discord : tout se passe sur une copie de votre serveur."
+              ) : (
+                <>
+                  Le bot enregistre une <Term id="sauvegarde-securite">sauvegarde de sécurité</Term> (rôles, salons, permissions, réglages). Elle permet de remettre la structure en place, mais pas les messages d’un salon supprimé.
+                </>
+              )}
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full border border-edge bg-night font-mono text-xs font-bold text-light">2</span>
+            <span>
+              Le bot réalise les {activeOps.length} opérations, une par une. Cela prend en général quelques minutes : Discord limite le rythme des actions d’un bot.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full border border-edge bg-night font-mono text-xs font-bold text-light">3</span>
+            <span>Vous suivez chaque étape en direct. Vous pouvez fermer la page : {source.kind === "backup" ? "la restauration" : "l’installation"} continue.</span>
+          </li>
+        </ol>
         {destructive.length > 0 && (
           <div className="mt-4 rounded-xl bg-danger-soft p-4">
             <p className="flex items-center gap-2 font-semibold text-danger">
@@ -691,7 +748,7 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
               ))}
             </ul>
             <label className="mt-3 block text-sm text-fg">
-              Pour confirmer, saisissez le nom exact du serveur : <strong>{plan.guildName}</strong>
+              Pour confirmer, tapez le nom exact du serveur : <strong>{plan.guildName}</strong>
               <input className="field mt-1" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
             </label>
           </div>
@@ -700,6 +757,9 @@ function PlanStep({ source, guild, options, dryRun, onBack }: { source: InstallS
           <Notice tone="danger" className="mt-4">
             {error.message}
           </Notice>
+        )}
+        {plan.blockers.length > 0 && (
+          <p className="mt-4 text-right text-sm font-medium text-danger">Corrigez les points signalés en haut de la page, puis relancez l’analyse.</p>
         )}
         <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
           <Button variant="ghost" onClick={() => analyse(resolutions, installationId)}>
@@ -724,9 +784,9 @@ function AnalysingState() {
   }, [lines.length]);
   return (
     <div className="flex flex-col items-center py-6 text-center" aria-live="polite">
-      <motion.div className="size-12 rounded-xl border-2 border-edge bg-light" animate={reduce ? undefined : { rotate: [0, 90, 180, 270, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }} />
+      <motion.div aria-hidden className="size-12 rounded-xl border-2 border-edge bg-light" animate={reduce ? undefined : { rotate: [0, 90, 180, 270, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }} />
       <p className="mt-4 font-semibold">{lines[i]}</p>
-      <p className="mt-1 text-sm text-muted">L’analyse lit l’état réel du serveur ; rien n’est modifié.</p>
+      <p className="mt-1 text-sm text-muted">L’analyse lit l’état réel du serveur. Rien n’est modifié. Cela prend quelques secondes.</p>
     </div>
   );
 }

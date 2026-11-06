@@ -100,7 +100,7 @@ export default function TermsPage() {
         </p>
       </Section>
 
-      <Section title="7. Mentions légales">
+      <Section title="7. Mentions légales et contact" id="contact">
         <ul className="list-disc space-y-1 pl-5">
           <li>Éditeur : {env.legalEditor || "le responsable du service Make Your Server (identité communiquée à l’hébergeur)"}.</li>
           <li>Contact : {contact}.</li>

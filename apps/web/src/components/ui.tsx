@@ -70,7 +70,11 @@ export function Notice({ tone = "blue", title, children, className }: { tone?: T
   );
 }
 
-export function PageHeader({ eyebrow, title, children, actions }: { eyebrow?: string; title: ReactNode; children?: ReactNode; actions?: ReactNode }) {
+/**
+ * En-tête de page. `help` ajoute un lien discret « Besoin d’aide ? » vers une réponse
+ * du centre d’aide (ex. { href: "/aide#inviter-bot" }) ; `label` remplace le texte.
+ */
+export function PageHeader({ eyebrow, title, children, actions, help }: { eyebrow?: string; title: ReactNode; children?: ReactNode; actions?: ReactNode; help?: { href: string; label?: string } }) {
   return (
     <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
@@ -78,8 +82,26 @@ export function PageHeader({ eyebrow, title, children, actions }: { eyebrow?: st
         <h1 className="text-3xl font-bold md:text-4xl">{title}</h1>
         {children && <div className="mt-2 text-muted">{children}</div>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {(actions || help) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {help && <HelpLink href={help.href} label={help.label} />}
+          {actions}
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Lien discret vers le centre d’aide (cible tactile de 36 px de haut). */
+export function HelpLink({ href, label = "Besoin d’aide ?", className }: { href: string; label?: string; className?: string }) {
+  return (
+    <Link href={href} className={cx("inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-muted transition-colors hover:bg-mist hover:text-fg", className)}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01" />
+      </svg>
+      {label}
+    </Link>
   );
 }
 
