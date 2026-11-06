@@ -23,7 +23,7 @@ export default async function BackupsPage({ searchParams }: { searchParams: Prom
   for (const b of list) byGuild.set(b.guildId, [...(byGuild.get(b.guildId) ?? []), b]);
   return (
     <>
-      <PageHeader eyebrow="Privées et versionnées" title="Sauvegardes">
+      <PageHeader eyebrow="Privées et versionnées" title="Sauvegardes" help={{ href: "/aide#contenu-sauvegarde" }}>
         Une sauvegarde est un état réellement récupéré depuis un serveur existant. Elle est privée : jamais publiée, jamais envoyée à l’IA, et vous pouvez la supprimer à tout moment.
       </PageHeader>
       <Notice tone="blue" title="Ce que contient une sauvegarde" className="mb-6">

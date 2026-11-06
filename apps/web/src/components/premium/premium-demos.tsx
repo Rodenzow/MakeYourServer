@@ -68,10 +68,10 @@ export function AiDesignDemo() {
             <motion.ul key={`res-${cycle}`} className="space-y-2" initial="hidden" animate="show" exit={{ opacity: 0 }} variants={{ show: { transition: { staggerChildren: 0.12 } } }}>
               {GENERATED.map((g) => (
                 <motion.li key={g.cat} variants={{ hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0 } }}>
-                  <p className="text-[10px] font-bold tracking-wide text-light/50">⌄ {g.cat}</p>
+                  <p className="text-[10px] font-bold tracking-wide text-light/70">⌄ {g.cat}</p>
                   {g.channels.map(([type, name]) => (
                     <p key={name} className="flex items-center gap-1.5 py-px">
-                      <ChannelIcon type={type} size={13} className="text-light/45" /> {name}
+                      <ChannelIcon type={type} size={13} className="text-light/60" /> {name}
                     </p>
                   ))}
                 </motion.li>
@@ -143,8 +143,9 @@ export function BackupDemo() {
   const restoring = reduce || step >= VERSIONS.length;
   return (
     <div ref={ref} className="flex h-full flex-col gap-3">
+      <div className="relative">
+      <span aria-hidden className="absolute top-4 bottom-4 left-[15px] z-10 w-px bg-line" />
       <ol className="relative space-y-2 rounded-xl border border-line bg-night p-3 pl-7 text-sm">
-        <span className="absolute top-4 bottom-4 left-[15px] w-px bg-line" />
         {VERSIONS.map((v, i) => (
           <li key={v} className={cx("relative flex items-center justify-between transition-opacity duration-300", i < shown ? "opacity-100" : "opacity-20")}>
             <span className={cx("absolute -left-[17px] size-2.5 rounded-full ring-4 ring-night", i < shown ? "bg-peri" : "bg-line")} />
@@ -153,6 +154,7 @@ export function BackupDemo() {
           </li>
         ))}
       </ol>
+      </div>
       <motion.div animate={{ opacity: restoring ? 1 : 0.35, y: restoring ? 0 : 6 }} className="rounded-xl border border-edge bg-surface p-3 text-sm">
         <p className="font-semibold">Restaurer seulement :</p>
         <div className="mt-2 flex flex-wrap gap-1.5">

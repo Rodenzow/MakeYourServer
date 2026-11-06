@@ -18,7 +18,7 @@ export function RichText({ text, spec }: { text?: string; spec: ServerSpec }) {
     } else if (m[2]) {
       const role = spec.roles.find((r) => r.id === m![2]);
       parts.push(
-        <span key={i++} className="rounded px-1 font-medium" style={{ background: `${colorHex(role?.color)}33`, color: colorHex(role?.color) === "#99aab5" ? "#c9d8ff" : colorHex(role?.color) }}>
+        <span key={i++} className="rounded px-1 font-medium" style={{ background: `${colorHex(role?.color)}33`, color: colorHex(role?.color) === "#99aab5" ? "#c9d8ff" : `color-mix(in srgb, ${colorHex(role?.color)} 55%, white)` }}>
           @{role?.name ?? m[2]}
         </span>,
       );

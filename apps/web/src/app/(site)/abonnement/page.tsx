@@ -61,7 +61,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="space-y-12">
-      <PageHeader eyebrow="Offres" title="Gratuit pour installer. Premium pour créer sans limites.">
+      <PageHeader eyebrow="Offres" title="Gratuit pour installer. Premium pour créer sans limites." help={{ href: "/aide#premium-contenu" }}>
         Tout ce qu’il faut pour un serveur complet est gratuit. Le Premium vous fait gagner des heures : décrivez votre serveur, l’IA le conçoit, et vos sauvegardes se font toutes seules.
       </PageHeader>
 

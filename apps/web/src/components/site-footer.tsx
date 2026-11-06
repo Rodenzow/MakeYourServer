@@ -11,9 +11,9 @@ export function SiteFooter() {
             Préparez votre serveur Discord sur le site, laissez notre bot l’installer. Make Your Server n’est pas affilié à Discord Inc.
           </p>
         </div>
-        <FooterCol title="Produit" links={[["/templates", "Templates"], ["/fonctionnement", "Fonctionnement"], ["/abonnement", "Offres"]]} />
+        <FooterCol title="Produit" links={[["/templates", "Templates"], ["/trouver", "Trouver mon template"], ["/fonctionnement", "Fonctionnement"], ["/abonnement", "Offres"]]} />
         <FooterCol title="Mon espace" links={[["/tableau-de-bord", "Tableau de bord"], ["/sauvegardes", "Sauvegardes"], ["/publications", "Mes publications"]]} />
-        <FooterCol title="Informations" links={[["/conditions", "Conditions d’utilisation"], ["/confidentialite", "Confidentialité"], ["/conditions#publication", "Règles de publication"], ["/fonctionnement#limites", "Ce que Discord ne permet pas"]]} />
+        <FooterCol title="Informations" links={[["/aide", "Centre d’aide"], ["/aide/glossaire", "Glossaire"], ["/conditions", "Conditions d’utilisation"], ["/confidentialite", "Confidentialité"], ["/conditions#publication", "Règles de publication"], ["/fonctionnement#limites", "Ce que Discord ne permet pas"]]} />
       </div>
     </footer>
   );

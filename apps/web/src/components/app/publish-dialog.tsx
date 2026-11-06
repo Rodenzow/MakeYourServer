@@ -106,6 +106,10 @@ export function PublishDialog({
               <p className="eyebrow">Bibliothèque communautaire</p>
               <h2 className="mt-1 text-2xl font-bold">Partager ce serveur</h2>
               <p className="mt-1 text-sm text-muted">
+                <Link href="/aide#ce-qui-est-publie" target="_blank" className="link mr-1">
+                  Ce qui est publié
+                </Link>
+                ·{" "}
                 {kind === "backup"
                   ? "Seule la structure est publiée : salons, rôles, permissions, AutoMod et onboarding. Les messages exportés et les identifiants de votre serveur ne le sont jamais."
                   : "Votre projet devient un template que tout le monde pourra installer. Vos modifications futures du projet ne changeront pas la version publiée."}

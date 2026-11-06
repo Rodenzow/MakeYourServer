@@ -17,7 +17,7 @@ export default async function ServersPage({ searchParams }: { searchParams: Prom
   const [{ guilds, needsReauth }, scores] = await Promise.all([listManageableGuilds(user.id, rafraichir === "1"), latestServerScores(user.id)]);
   return (
     <>
-      <PageHeader eyebrow="Discord" title="Mes serveurs accessibles" actions={<ButtonLink href="/serveurs?rafraichir=1" variant="secondary">Actualiser</ButtonLink>}>
+      <PageHeader eyebrow="Discord" title="Mes serveurs accessibles" help={{ href: "/aide#inviter-bot" }} actions={<ButtonLink href="/serveurs?rafraichir=1" variant="secondary">Actualiser</ButtonLink>}>
         Seuls les serveurs où vous êtes propriétaire, administrateur ou avez « Gérer le serveur » sont affichés. Vos droits sont revérifiés par le bot avant chaque opération.
       </PageHeader>
       {!botConfigured() && <Notice tone="warning" className="mb-4" title="Bot non configuré">DISCORD_BOT_TOKEN n’est pas renseigné sur cette instance : l’analyse et l’installation sont indisponibles.</Notice>}

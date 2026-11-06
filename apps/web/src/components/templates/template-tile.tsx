@@ -52,11 +52,11 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
           <ul className="space-y-1.5 text-[12.5px] text-light/85 transition-transform duration-700 ease-[var(--ease-snap)] group-hover:-translate-y-[52px]">
             {t.preview.categories.slice(0, 3).map((c) => (
               <li key={c.name}>
-                <p className="truncate text-[10px] font-bold tracking-wide text-light/50 uppercase">⌄ {c.name}</p>
+                <p className="truncate text-[10px] font-bold tracking-wide text-light/70 uppercase">⌄ {c.name}</p>
                 <ul>
                   {c.channels.slice(0, 3).map((ch) => (
                     <li key={ch.name} className="flex items-center gap-1.5 rounded px-1 py-[1px] group-hover:bg-white/[0.03]">
-                      <ChannelIcon type={ch.type} size={13} className="shrink-0 text-light/45" />
+                      <ChannelIcon type={ch.type} size={13} className="shrink-0 text-light/60" />
                       <span className="truncate">{ch.name}</span>
                     </li>
                   ))}
@@ -71,7 +71,7 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
                 Accueil :
               </span>{" "}
               « {t.preview.onboarding.first} »
-              {t.preview.onboarding.count > 1 && <span className="text-light/50"> +{t.preview.onboarding.count - 1}</span>}
+              {t.preview.onboarding.count > 1 && <span className="text-light/70"> +{t.preview.onboarding.count - 1}</span>}
             </p>
           )}
         </div>

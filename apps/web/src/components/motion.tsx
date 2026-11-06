@@ -54,7 +54,8 @@ export function SplitText({ text, className, delay = 0, highlight }: { text: str
   const words = text.split(" ");
   const hl = new Set((highlight ?? "").split(" ").filter(Boolean));
   return (
-    <span className={className} aria-label={text}>
+    <span className={className}>
+      <span className="sr-only">{text}</span>
       {words.map((w, i) => (
         <span key={i} aria-hidden className="inline-block overflow-hidden pb-[0.08em] align-bottom">
           <motion.span

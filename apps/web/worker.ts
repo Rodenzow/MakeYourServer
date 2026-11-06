@@ -21,7 +21,20 @@ interface Ctx {
 
 const SESSION_COOKIE = "mys_session";
 /** Pages publiques identiques pour tous les visiteurs non connectés. */
-const PUBLIC_PAGES = [/^\/$/, /^\/templates$/, /^\/templates\/[a-z0-9-]{1,120}$/, /^\/fonctionnement$/, /^\/confidentialite$/, /^\/conditions$/, /^\/connexion$/, /^\/abonnement$/];
+const PUBLIC_PAGES = [
+  /^\/$/,
+  /^\/templates$/,
+  /^\/templates\/[a-z0-9-]{1,120}$/,
+  /^\/createurs\/[0-9a-f-]{36}$/,
+  /^\/trouver$/,
+  /^\/aide$/,
+  /^\/aide\/glossaire$/,
+  /^\/fonctionnement$/,
+  /^\/confidentialite$/,
+  /^\/conditions$/,
+  /^\/connexion$/,
+  /^\/abonnement$/,
+];
 /** Au-delà, la page en cache est encore servie mais recalculée en arrière-plan. */
 const FRESH_SECONDS = 30;
 /** Durée maximale de conservation en cache. */

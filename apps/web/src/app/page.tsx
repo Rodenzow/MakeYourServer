@@ -66,6 +66,9 @@ export default async function Home() {
                     Comment ça marche
                   </ButtonLink>
                 </div>
+                <Link href="/trouver" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-light hover:underline">
+                  Pas sûr ? Trouvez votre template en 1 minute <IconArrowRight size={14} />
+                </Link>
               </Reveal>
               <Reveal delay={0.8}>
                 <ul className="mt-8 grid gap-2 text-sm text-ink sm:grid-cols-2">
@@ -119,13 +122,14 @@ export default async function Home() {
         <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
           <Reveal>
             <p className="eyebrow">Par où commencer ?</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-bold md:text-5xl">Trois façons de démarrer. Toutes simples.</h2>
+            <h2 className="mt-3 max-w-2xl text-3xl font-bold md:text-5xl">Quatre façons de démarrer. Toutes simples.</h2>
           </Reveal>
-          <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
+          <Stagger className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {[
               { href: "/templates", icon: <IconCube size={22} />, title: "Partir d’un template", text: "Choisissez parmi des serveurs complets selon votre usage, puis personnalisez-les.", tag: "Gratuit" },
               { href: "/ia", icon: <IconSparkle size={22} />, title: "Décrire mon projet à l’IA", text: "Expliquez votre besoin en une phrase : l’IA conçoit un serveur sur mesure.", tag: "Premium" },
               { href: "/sauvegardes", icon: <IconSave size={22} />, title: "Protéger mon serveur", text: "Sauvegardez la configuration d’un serveur existant et restaurez-la au besoin.", tag: "Gratuit" },
+              { href: "/serveurs", icon: <IconShield size={22} />, title: "Vérifier sa santé", text: "Obtenez une note sur 100 et corrigez les failles de votre serveur en un clic.", tag: "Gratuit" },
             ].map((c) => (
               <StaggerItem key={c.href}>
                 <Tilt className="group h-full">

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Term } from "@/components/help/term";
 import Link from "next/link";
 import { SIZE_LABELS, THEME_LABELS, allChannels, specStats, type ServerSpec } from "@mys/core";
 import { FEATURE_TAGS } from "@mys/core/templates";
@@ -182,6 +183,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
       {spec.onboarding?.enabled && spec.onboarding.prompts.length > 0 && (
         <Reveal className="mt-12">
           <h2 className="text-2xl font-bold">Ce que verront vos nouveaux membres</h2>
+          <p className="mt-1 text-sm text-muted">Il s’agit de l’<Term id="onboarding">onboarding</Term> de Discord.</p>
           <p className="mt-1 mb-5 text-muted">À leur arrivée, Discord leur pose ces questions : leurs réponses leur donnent les bons rôles et ouvrent les salons qui les intéressent.</p>
           <ol className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {spec.onboarding.prompts.map((p, i) => (
@@ -223,7 +225,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           </div>
         </section>
         <section>
-          <h2 className="text-2xl font-bold">Rôles et hiérarchie</h2>
+          <h2 className="text-2xl font-bold">Rôles et <Term id="hierarchie">hiérarchie</Term></h2>
           <div className="mt-4">
             <RolesOverview spec={spec} />
           </div>
@@ -254,7 +256,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="panel p-4 text-sm">
-            <p className="font-semibold">AutoMod (natif Discord)</p>
+            <p className="font-semibold"><Term id="automod">AutoMod</Term> (natif Discord)</p>
             <ul className="mt-2 space-y-1 text-muted">
               {spec.automod.map((a) => (
                 <li key={a.id}>• {a.name}</li>
@@ -274,7 +276,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           <div className="panel p-4 text-sm">
             <p className="font-semibold">Assuré par notre bot</p>
             <ul className="mt-2 space-y-1 text-muted">
-              {spec.features.tickets?.enabled && <li>• Tickets privés vers l’équipe</li>}
+              {spec.features.tickets?.enabled && <li>• <Term id="ticket">Tickets</Term> privés vers l’équipe</li>}
               {spec.features.suggestions?.enabled && <li>• Suggestions avec votes</li>}
               {spec.messages.some((m) => m.buttons.some((b) => b.action === "role-toggle")) && <li>• Rôles à choisir par boutons</li>}
               {spec.features.joinLogs?.enabled && <li>• Logs d’arrivées et de départs</li>}
@@ -285,7 +287,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           <div className="mt-4 flex gap-3 rounded-xl border-2 border-dashed border-line bg-surface p-4 text-sm">
             <IconHand className="mt-0.5 shrink-0 text-blue-strong" />
             <p>
-              <strong>Guide du serveur :</strong> Discord ne permet pas de le configurer via son API publique. Son contenu est prêt et un assistant vous guidera pour le recopier après l’installation ({allChannels(spec).length} salons référencés).
+              <strong><Term id="guide-serveur">Guide du serveur</Term> :</strong> Discord ne permet pas de le configurer via son API publique. Son contenu est prêt et un assistant vous guidera pour le recopier après l’installation ({allChannels(spec).length} salons référencés).
             </p>
           </div>
         )}
