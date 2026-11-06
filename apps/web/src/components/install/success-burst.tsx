@@ -47,6 +47,7 @@ export function SuccessBurst({ guildId, dryRun, projectId, kind }: { guildId: st
           ) : (
             <ButtonLink href={`https://discord.com/channels/${guildId}`} size="lg" target="_blank" rel="noreferrer">
               Ouvrir le serveur dans Discord <IconArrowRight size={18} />
+              <span className="sr-only"> (nouvel onglet)</span>
             </ButtonLink>
           )}
           <ButtonLink href="/sauvegardes" variant="secondary" size="lg">

@@ -8,6 +8,9 @@ import { StepIcon } from "../step-icon";
 import { SuccessBurst } from "./success-burst";
 import { Badge, Button, ButtonLink, Notice, cx, formatDate } from "../ui";
 import { IconCheck, IconHand } from "../icons";
+import { Term } from "../help/term";
+
+const STEP_STATUS: Record<string, string> = { succeeded: "réussie", skipped: "déjà en place", failed: "en échec", cancelled: "annulée", running: "en cours", pending: "en attente" };
 
 interface StepView {
   id: string;
@@ -41,10 +44,10 @@ interface InstView {
 const TERMINAL = ["succeeded", "partial", "failed", "cancelled"];
 const BANNER: Record<string, { title: string; tone: "success" | "warning" | "danger" | "neutral" | "blue"; text: string }> = {
   planned: { title: "En attente de confirmation", tone: "neutral", text: "Cette installation n’a pas été lancée." },
-  queued: { title: "En file d’attente", tone: "blue", text: "Le bot va démarrer dans quelques secondes. Vous pouvez quitter cette page : l’installation continue." },
-  running: { title: "Installation en cours", tone: "blue", text: "Chaque ligne correspond à une opération réellement effectuée par le bot. Vous pouvez quitter cette page." },
+  queued: { title: "En file d’attente", tone: "blue", text: "Le bot va démarrer dans quelques secondes. Vous pouvez fermer cette page : l’installation continue." },
+  running: { title: "Installation en cours", tone: "blue", text: "Chaque ligne est une opération réellement faite par le bot. Cela prend en général quelques minutes. Vous pouvez fermer cette page : l’installation continue." },
   succeeded: { title: "Installation terminée", tone: "success", text: "Toutes les étapes ont réussi." },
-  partial: { title: "Installation partielle", tone: "warning", text: "Certaines étapes ont échoué. Ce qui a réussi est en place ; corrigez la cause indiquée puis relancez : seules les étapes en échec seront rejouées, sans doublon." },
+  partial: { title: "Installation partielle", tone: "warning", text: "Certaines étapes ont échoué, mais ce qui a réussi est en place. Corrigez la cause indiquée en rouge, puis cliquez sur « Relancer les étapes en échec » : seules celles-ci seront rejouées, sans doublon." },
   failed: { title: "Installation échouée", tone: "danger", text: "Aucune étape n’a pu aboutir." },
   cancelled: { title: "Installation annulée", tone: "neutral", text: "Les étapes déjà effectuées restent en place ; les suivantes n’ont pas été exécutées." },
 };
@@ -136,7 +139,7 @@ export function InstallationProgress({ id }: { id: string }) {
       <div className="brick p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="flex items-center gap-2 font-display text-lg font-semibold">
-            {banner.title}
+            <span role="status">{banner.title}</span>
             <Badge tone={banner.tone === "neutral" ? "neutral" : banner.tone}>{done}/{steps.length} étapes</Badge>
           </p>
           {failed.length > 0 && <Badge tone="danger">{failed.length} en échec</Badge>}
@@ -148,7 +151,7 @@ export function InstallationProgress({ id }: { id: string }) {
         {inst.error && <p className="mt-2 text-sm font-medium text-danger">{inst.error}</p>}
         {inst.safetyBackupId && (
           <p className="mt-2 text-sm text-muted">
-            Sauvegarde de sécurité prise avant les modifications :{" "}
+            <Term id="sauvegarde-securite">Sauvegarde de sécurité</Term> prise avant les modifications :{" "}
             <Link href={`/sauvegardes/${inst.safetyBackupId}`} className="font-semibold text-fg underline">
               la consulter
             </Link>
@@ -171,6 +174,7 @@ export function InstallationProgress({ id }: { id: string }) {
               <motion.li key={s.id} layout={!reduce} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} className={cx("flex gap-3 px-4 py-2.5", s.status === "running" && "bg-light/30")}>
                 <StepIcon status={s.status} />
                 <div className="min-w-0 flex-1 text-sm">
+                  <span className="sr-only">{STEP_STATUS[s.status] ?? s.status} : </span>
                   <p className={cx(s.status === "pending" && "text-muted", s.destructive && "text-danger")}>{s.label}</p>
                   {s.detail && s.status !== "failed" && <p className="text-xs text-muted">{s.detail}</p>}
                   {s.error && s.status === "failed" && <p className="text-xs font-medium text-danger">{s.error}</p>}
@@ -197,11 +201,12 @@ function ManualAssistant({ steps }: { steps: ManualStep[] }) {
       <h2 className="flex items-center gap-2 text-lg font-bold">
         <IconHand /> À terminer vous-même ({done.length}/{steps.length})
       </h2>
-      <p className="text-sm text-muted">Ces réglages ne sont pas disponibles dans l’API publique de Discord (ou demandent des droits que le bot n’a pas). Ils ne sont donc PAS configurés : voici comment le faire en quelques minutes.</p>
+      <p className="text-sm text-muted">Discord ne permet pas à un bot de faire ces réglages (ou le bot n’avait pas les droits nécessaires). Ils ne sont donc <strong className="text-fg">pas</strong> configurés. Voici comment les faire vous-même, en quelques minutes.</p>
       {steps.map((s) => (
         <details key={s.id} className={cx("panel p-4", done.includes(s.id) && "opacity-70")} open={!done.includes(s.id)}>
           <summary className="flex cursor-pointer items-center gap-2 font-semibold">
-            {done.includes(s.id) ? <IconCheck className="text-success" /> : <span className="size-4 rounded border-2 border-line" />} {s.title}
+            {done.includes(s.id) ? <IconCheck className="text-success" /> : <span aria-hidden className="size-4 rounded border-2 border-edge" />} {s.title}
+            <span className="sr-only">{done.includes(s.id) ? " (fait)" : " (à faire)"}</span>
           </summary>
           <p className="mt-2 text-sm text-muted">{s.why}</p>
           <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm">
@@ -217,14 +222,15 @@ function ManualAssistant({ steps }: { steps: ManualStep[] }) {
                     <p className="font-semibold">{c.label}</p>
                     <button
                       type="button"
-                      className="rounded-md border border-line bg-surface px-2 py-0.5 text-xs font-semibold"
+                      className="inline-flex min-h-8 items-center rounded-md border border-edge bg-surface px-3 text-xs font-semibold hover:border-blue"
                       onClick={() => {
                         void navigator.clipboard?.writeText(c.value);
                         setCopied(c.label);
                         setTimeout(() => setCopied(null), 1500);
                       }}
                     >
-                      {copied === c.label ? "Copié !" : "Copier"}
+                      <span aria-live="polite">{copied === c.label ? "Copié !" : "Copier"}</span>
+                      <span className="sr-only"> : {c.label}</span>
                     </button>
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-ink">{c.value}</p>
