@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { specStats, type ServerSpec } from "@mys/core";
+import { specStats, type ServerSpec, type TemplateAdditions } from "@mys/core";
 import { AiPanel } from "../ai/ai-panel";
 import { SpecPreview } from "../spec/spec-preview";
-import { Button, ButtonLink, cx } from "../ui";
-import { IconAlert, IconArrowRight, IconCheck, IconSparkle, IconUndo } from "../icons";
+import { Badge, Button, ButtonLink, cx } from "../ui";
+import { IconAlert, IconArrowRight, IconCheck, IconClock, IconSparkle, IconUndo, IconX } from "../icons";
 import { CategoryInspector, ChannelInspector, EveryoneInspector, MessageInspector, RoleInspector } from "./inspectors";
 import { AutomodPanel, FeaturesPanel, SettingsPanel, WelcomePanel } from "./settings-panels";
 import { RolesPanel, StructurePanel } from "./structure-panel";
 import { useEditor, type Selection } from "./state";
 import { QuickGuide } from "./quick-guide";
 import { PublishDialog } from "../app/publish-dialog";
+import { HistoryPanel } from "../projects/history-panel";
+import { ShareButton } from "../projects/share-dialog";
+import { AdditionsList, additionsKey } from "../projects/template-update";
 
 const PANELS = [
   { id: "settings", label: "Réglages" },
@@ -22,7 +25,23 @@ const PANELS = [
   { id: "features", label: "Fonctionnalités" },
 ] as const;
 
-export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project: { id: string; name: string; spec: ServerSpec; revision: number }; fromTemplate?: boolean; aiAvailable: boolean }) {
+export function ProjectEditor({
+  project,
+  fromTemplate,
+  aiAvailable,
+  role = "owner",
+  ownerName,
+  showAdditions,
+}: {
+  project: { id: string; name: string; spec: ServerSpec; revision: number };
+  fromTemplate?: boolean;
+  aiAvailable: boolean;
+  /** owner : propriétaire · editor : co-gestionnaire (projet partagé). */
+  role?: "owner" | "editor";
+  ownerName?: string | null;
+  /** Arrivée depuis « Voir les nouveautés » d’un template : affiche les éléments ajoutés. */
+  showAdditions?: boolean;
+}) {
   const editor = useEditor(project.id, project.spec, project.revision);
   const reduce = useReducedMotion();
   const [left, setLeft] = useState<"structure" | "roles">("structure");
@@ -31,8 +50,42 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [aiOpen, setAiOpen] = useState(false);
   const [issuesOpen, setIssuesOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [additions, setAdditions] = useState<{ templateName?: string; added?: TemplateAdditions } | null>(null);
   const { spec, validation } = editor;
   const stats = specStats(spec);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Nouveautés de template tout juste ajoutées : on les liste pour les relire.
+  useEffect(() => {
+    if (!showAdditions) return;
+    let stored: { templateName?: string; added?: TemplateAdditions } = {};
+    try {
+      // Lu sans être effacé ici (l’effet peut s’exécuter deux fois en développement) : effacé à la fermeture du bandeau.
+      stored = JSON.parse(sessionStorage.getItem(additionsKey(project.id)) ?? "{}");
+    } catch {
+      /* stockage indisponible */
+    }
+    setAdditions(stored);
+    // Retire ?nouveautes=1 de l’adresse pour ne pas réafficher le bandeau au rechargement.
+    window.history.replaceState(null, "", `/projets/${project.id}`);
+  }, [showAdditions, project.id]);
+
+  const selectAddition = (kind: "role" | "category" | "channel" | "message" | "automod" | "onboarding", id: string) => {
+    if (kind === "automod") setSelection({ kind: "panel", id: "automod" });
+    else if (kind === "onboarding") setSelection({ kind: "panel", id: "welcome" });
+    else {
+      setSelection({ kind, id });
+      setLeft(kind === "role" ? "roles" : "structure");
+    }
+    setView("edit");
+  };
 
   useEffect(() => {
     const first = spec.categories[0]?.channels[0];
@@ -58,7 +111,14 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
           <Link href="/projets" className="text-sm font-semibold text-muted hover:text-fg">
             ← Projets
           </Link>
-          <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold">{spec.meta.name}</h1>
+          <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold">
+            {spec.meta.name}
+            {role === "editor" && (
+              <Badge tone="blue" className="ml-2 align-middle">
+                {`Partagé${ownerName ? ` par ${ownerName}` : ""}`}
+              </Badge>
+            )}
+          </h1>
           <SaveBadge status={editor.status} />
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={editor.undo} disabled={!editor.canUndo} aria-label="Annuler (Ctrl+Z)" title="Annuler (Ctrl+Z)">
@@ -78,6 +138,10 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
               </button>
             ))}
           </div>
+          <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog" title="Historique des versions">
+            <IconClock size={15} /> <span className="hidden sm:inline">Historique</span>
+          </Button>
+          <ShareButton projectId={project.id} projectName={spec.meta.name} role={role} />
           <Button variant="secondary" size="sm" onClick={() => setAiOpen(true)}>
             <IconSparkle size={15} /> IA
           </Button>
@@ -96,6 +160,40 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
             </button>
           </div>
         )}
+        <AnimatePresence>
+          {additions && (
+            <motion.div initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduce ? undefined : { height: 0, opacity: 0 }} className="overflow-hidden border-t border-line bg-blue/[0.07]">
+              <div className="mx-auto flex max-w-[1600px] items-start gap-3 px-4 py-3 text-sm">
+                <IconSparkle size={18} className="mt-0.5 shrink-0 text-blue-strong" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-fg">Nouveautés{additions.templateName ? ` du template « ${additions.templateName} »` : " du template"} ajoutées au projet</p>
+                  <p className="text-ink">
+                    Relisez-les (cliquez sur un élément pour l’ouvrir), puis installez en mode « Ajout à un serveur existant » : ce qui existe déjà sur votre serveur est conservé. Vous pouvez aussi revenir en arrière depuis l’Historique.
+                  </p>
+                  {additions.added && <AdditionsList added={additions.added} onSelect={selectAddition} className="mt-2" />}
+                </div>
+                <ButtonLink href={`/projets/${project.id}/installer`} size="sm" variant="secondary">
+                  Installer
+                </ButtonLink>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setAdditions(null);
+                    try {
+                      sessionStorage.removeItem(additionsKey(project.id));
+                    } catch {
+                      /* stockage indisponible */
+                    }
+                  }}
+                  aria-label="Masquer ce bandeau"
+                >
+                  <IconX size={15} />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {editor.status === "error" && <div className="bg-warning-soft px-4 py-2 text-center text-sm text-warning">Enregistrement impossible : {editor.error} Vos modifications sont conservées dans cette page ; nouvelle tentative à la prochaine modification.</div>}
         <AnimatePresence>
           {issuesOpen && (
@@ -184,6 +282,35 @@ export function ProjectEditor({ project, fromTemplate, aiAvailable }: { project:
       </div>
 
       <QuickGuide />
+
+      <HistoryPanel
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        projectId={project.id}
+        currentSpec={spec}
+        currentRevision={editor.revision}
+        canRestore={editor.status === "saved"}
+        onRestored={(restored, revision, from) => {
+          editor.load(restored, revision);
+          setHistoryOpen(false);
+          setToast(`Version ${from} restaurée. L’ancienne version reste disponible dans l’historique.`);
+        }}
+      />
+
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+        <AnimatePresence>
+          {toast && (
+            <motion.p
+              initial={reduce ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+              className="pointer-events-auto flex items-center gap-2 rounded-xl border border-edge bg-surface px-4 py-2.5 text-sm font-semibold shadow-2xl"
+            >
+              <IconCheck size={16} className="text-success" /> {toast}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
 
       <AnimatePresence>
         {aiOpen && (

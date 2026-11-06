@@ -15,6 +15,7 @@ import {
   BotMissingError,
   InstallError,
   QuotaError,
+  accessibleProjectsCondition,
   cancelInstallation,
   confirmInstallation,
   getInstallationWithSteps,
@@ -43,7 +44,8 @@ export async function autocompleteProjects(i: AutocompleteInteraction) {
   const rows = await getDb()
     .select({ id: projects.id, name: projects.name })
     .from(projects)
-    .where(and(eq(projects.userId, user.id), q ? ilike(projects.name, `%${q}%`) : undefined))
+    // Projets possédés et projets partagés (co-gestion).
+    .where(and(accessibleProjectsCondition(user.id), q ? ilike(projects.name, `%${q}%`) : undefined))
     .orderBy(desc(projects.updatedAt))
     .limit(25);
   await i.respond(rows.map((r) => ({ name: r.name.slice(0, 100), value: r.id })));

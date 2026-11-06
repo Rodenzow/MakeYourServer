@@ -4,6 +4,8 @@ import { and, desc, eq, getDb, savedTemplates, templates } from "@mys/db";
 import { getEntitlement, getUsage, listBackups, listInstallations } from "@mys/engine";
 import { requireUser } from "@/lib/session";
 import { listAiGenerations, listProjects } from "@/lib/data";
+import { listTemplateUpdateNotices } from "@/lib/template-updates";
+import { TemplateUpdateNotices } from "@/components/projects/template-update";
 import { Badge, ButtonLink, formatDate } from "@/components/ui";
 import { InstallStatusBadge } from "@/components/app/status";
 import { QuotaBar } from "@/components/app/quota-bar";
@@ -15,7 +17,7 @@ export const metadata = { title: "Tableau de bord" };
 
 export default async function Dashboard() {
   const user = await requireUser("/tableau-de-bord");
-  const [projects, installs, backups, ent, usage, gens, saved] = await Promise.all([
+  const [projects, installs, backups, ent, usage, gens, saved, notices] = await Promise.all([
     listProjects(user.id),
     listInstallations(user.id, 5),
     listBackups(user.id),
@@ -28,7 +30,10 @@ export default async function Dashboard() {
       .innerJoin(templates, eq(templates.id, savedTemplates.templateId))
       .where(and(eq(savedTemplates.userId, user.id), eq(templates.status, "published")))
       .orderBy(desc(savedTemplates.createdAt)),
+    listTemplateUpdateNotices(user.id),
   ]);
+  // Seuls les projets dont la personne est propriétaire comptent dans son offre.
+  const ownedCount = projects.filter((p) => p.role === "owner").length;
 
   // Prochaine étape suggérée, selon l’état réel du compte.
   const lastInstall = installs[0];
@@ -70,6 +75,13 @@ export default async function Dashboard() {
           </div>
         </section>
       </Reveal>
+
+      {/* Templates améliorés depuis la création d’un projet */}
+      {notices.length > 0 && (
+        <div className="mt-6">
+          <TemplateUpdateNotices notices={notices} />
+        </div>
+      )}
 
       {/* Actions rapides */}
       <Stagger className="mt-6 grid gap-4 md:grid-cols-3">
@@ -113,9 +125,11 @@ export default async function Dashboard() {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold">{p.name}</span>
                         <span className="text-xs text-muted">
+                          {p.owner ? `De ${p.owner.name} · ` : ""}
                           {p.stats.channels} salons · {p.stats.roles} rôles · {formatDate(p.updatedAt, false)}
                         </span>
                       </span>
+                      {p.role === "editor" && <Badge tone="blue">Partagé</Badge>}
                       <Badge tone={p.status === "ready" ? "success" : "warning"}>{p.status === "ready" ? "Prêt" : "Brouillon"}</Badge>
                     </Link>
                   </li>
@@ -165,7 +179,7 @@ export default async function Dashboard() {
             <div className="panel space-y-4 p-5">
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
-                  [projects.length, "projets"],
+                  [ownedCount, "projets"],
                   [installs.length, "installations"],
                   [backups.length, "sauvegardes"],
                 ].map(([n, l]) => (
@@ -177,7 +191,7 @@ export default async function Dashboard() {
                   </div>
                 ))}
               </div>
-              <QuotaBar label="Projets" used={projects.length} max={ent.quotas.maxProjects} />
+              <QuotaBar label="Projets" used={ownedCount} max={ent.quotas.maxProjects} />
               <QuotaBar label="Conceptions IA ce mois" used={usage.ai_generations} max={ent.quotas.aiGenerationsPerMonth} />
               <QuotaBar label="Modifications IA ce mois" used={usage.ai_edits} max={ent.quotas.aiEditsPerMonth} />
               <p className="text-xs text-muted">Les avantages sont liés à votre compte, sur tous vos serveurs.{ent.currentPeriodEnd ? ` Jusqu’au ${formatDate(ent.currentPeriodEnd, false)}.` : ""}</p>
