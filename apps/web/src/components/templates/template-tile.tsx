@@ -2,9 +2,10 @@ import Link from "next/link";
 import { THEME_LABELS } from "@mys/core";
 import { FEATURE_TAGS } from "@mys/core/templates";
 import type { TemplateCard } from "@/lib/data";
-import { ChannelIcon, IconEye, IconUsers } from "../icons";
+import { ChannelIcon, IconEye, IconSparkle, IconUsers } from "../icons";
 import { cx } from "../ui";
 import { themeVisual } from "./theme-visuals";
+import { RatingPill } from "./stars";
 
 const SHOWN_FEATURES = ["onboarding", "tickets", "self-roles", "forum", "automod", "events"] as const;
 
@@ -34,6 +35,11 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
         </span>
         <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_top,rgb(7_20_45/0.55),transparent_70%)]" />
         <div aria-hidden className="absolute inset-0 -translate-x-full bg-[linear-gradient(100deg,transparent_30%,rgb(255_255_255/0.22)_50%,transparent_70%)] transition-transform duration-1000 ease-out group-hover:translate-x-full" />
+        {t.featured && (
+          <span className="absolute top-2.5 left-3 inline-flex items-center gap-1 rounded-full bg-night/85 px-2 py-0.5 text-[10px] font-bold tracking-wide text-warning uppercase ring-1 ring-warning/40 backdrop-blur" title="Sélection de l’équipe">
+            <IconSparkle size={11} /> Sélection
+          </span>
+        )}
         <div className="absolute right-12 bottom-3 left-4 flex items-center gap-2.5">
           <span className="grid size-11 place-items-center rounded-[14px] bg-night/80 text-2xl shadow-lg ring-2 ring-white/15 backdrop-blur transition-[border-radius] duration-300 group-hover:rounded-[22px]">{v.emoji}</span>
           <span className="line-clamp-2 min-w-0 font-display text-[15px] leading-tight font-bold text-white drop-shadow">{t.name}</span>
@@ -46,11 +52,11 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
           <ul className="space-y-1.5 text-[12.5px] text-light/85 transition-transform duration-700 ease-[var(--ease-snap)] group-hover:-translate-y-[52px]">
             {t.preview.categories.slice(0, 3).map((c) => (
               <li key={c.name}>
-                <p className="truncate text-[10px] font-bold tracking-wide text-light/50 uppercase">⌄ {c.name}</p>
+                <p className="truncate text-[10px] font-bold tracking-wide text-light/70 uppercase">⌄ {c.name}</p>
                 <ul>
                   {c.channels.slice(0, 3).map((ch) => (
                     <li key={ch.name} className="flex items-center gap-1.5 rounded px-1 py-[1px] group-hover:bg-white/[0.03]">
-                      <ChannelIcon type={ch.type} size={13} className="shrink-0 text-light/45" />
+                      <ChannelIcon type={ch.type} size={13} className="shrink-0 text-light/60" />
                       <span className="truncate">{ch.name}</span>
                     </li>
                   ))}
@@ -65,7 +71,7 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
                 Accueil :
               </span>{" "}
               « {t.preview.onboarding.first} »
-              {t.preview.onboarding.count > 1 && <span className="text-light/50"> +{t.preview.onboarding.count - 1}</span>}
+              {t.preview.onboarding.count > 1 && <span className="text-light/70"> +{t.preview.onboarding.count - 1}</span>}
             </p>
           )}
         </div>
@@ -79,6 +85,7 @@ export function TemplateTile({ t, compact = false, className }: { t: TemplateCar
           ) : (
             <span className="shrink-0 rounded bg-success-soft px-1.5 text-[10px] font-bold text-success">COMMUNAUTÉ</span>
           )}
+          {t.rating && <RatingPill average={t.rating.average} count={t.rating.count} className="ml-auto" />}
         </div>
         <p className="mt-1.5 line-clamp-2 text-sm text-ink">{t.tagline}</p>
         {features.length > 0 && (

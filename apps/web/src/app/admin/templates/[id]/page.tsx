@@ -4,9 +4,10 @@ import { specStats, validateSpec } from "@mys/core";
 import { ActionButton } from "@/components/admin/action-button";
 import { TemplateEditor } from "@/components/admin/template-editor";
 import { Badge, Notice, PageHeader, formatDate } from "@/components/ui";
-import { and, eq, getDb, isNull, templateReports, users } from "@mys/db";
+import { and, eq, getDb, isNull, templateReports, templates, users } from "@mys/db";
 import { TEMPLATE_STATUS_LABELS, getTemplateById } from "@/lib/admin";
 import { REPORT_REASONS } from "@/lib/publications";
+import { formatRating } from "@/lib/community-rules";
 import { sizeOptions, themeOptions } from "../options";
 
 export const metadata = { title: "Modifier un template" };
@@ -18,9 +19,10 @@ export default async function EditTemplate({ params }: { params: Promise<{ id: s
   const v = validateSpec(t.spec);
   const s = specStats(t.spec);
   const db = getDb();
-  const [[author], reports] = await Promise.all([
+  const [[author], reports, [basedOn]] = await Promise.all([
     t.authorUserId ? db.select({ id: users.id, username: users.username, globalName: users.globalName, discordId: users.discordId }).from(users).where(eq(users.id, t.authorUserId)) : Promise.resolve([undefined]),
     db.select().from(templateReports).where(and(eq(templateReports.templateId, t.id), isNull(templateReports.resolvedAt))),
+    t.basedOnTemplateId ? db.select({ id: templates.id, name: templates.name }).from(templates).where(eq(templates.id, t.basedOnTemplateId)) : Promise.resolve([undefined]),
   ]);
   return (
     <>
@@ -32,6 +34,12 @@ export default async function EditTemplate({ params }: { params: Promise<{ id: s
             {t.status !== "published" && (
               <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "publish" }} label={t.status === "pending_review" ? "Accepter et publier" : "Publier"} variant="primary" confirm={`Publier « ${t.name} » dans la bibliothèque publique ?`} />
             )}
+            {t.status === "published" &&
+              (t.featured ? (
+                <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "unfeature" }} label="Retirer de la sélection" />
+              ) : (
+                <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "feature" }} label="Mettre en avant" />
+              ))}
             {t.status === "published" && <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "archive" }} label="Retirer de la bibliothèque" confirm="Retirer ce template de la bibliothèque publique ?" />}
             {t.status === "pending_review" && (
               <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "reject" }} label="Refuser" variant="danger" prompt="Motif du refus (communiqué à l’auteur) :" promptKey="note" promptRequired />
@@ -40,9 +48,10 @@ export default async function EditTemplate({ params }: { params: Promise<{ id: s
           </div>
         }
       >
-        <span className="font-mono text-xs">{t.slug}</span> · <Badge>{TEMPLATE_STATUS_LABELS[t.status] ?? t.status}</Badge> {t.official && <Badge tone="night">Officiel</Badge>}
+        <span className="font-mono text-xs">{t.slug}</span> · <Badge>{TEMPLATE_STATUS_LABELS[t.status] ?? t.status}</Badge> {t.official && <Badge tone="night">Officiel</Badge>} {t.featured && <Badge tone="warning">Sélection de l’équipe</Badge>}
         <p className="mt-1 text-xs">
-          {s.channels} salons · {s.roles} rôles · {s.messages} messages · {t.viewCount} vue(s) · {t.installCount} installation(s) · modifié le {formatDate(t.updatedAt)}
+          {s.channels} salons · {s.roles} rôles · {s.messages} messages · {t.viewCount} vue(s) · {t.installCount} installation(s)
+          {t.ratingCount > 0 ? ` · ${formatRating(t.ratingSum / t.ratingCount)}/5 (${t.ratingCount} avis)` : ""} · modifié le {formatDate(t.updatedAt)}
           {t.publishedAt ? ` · publié le ${formatDate(t.publishedAt, false)}` : ""}
         </p>
         <Link href="/admin/templates" className="mt-1 inline-block text-sm text-muted hover:text-fg">← Tous les templates</Link>
@@ -65,6 +74,14 @@ export default async function EditTemplate({ params }: { params: Promise<{ id: s
             <span className="text-muted">Origine : </span>
             {t.sourceBackupId ? "structure d’une sauvegarde (messages exportés exclus)" : t.sourceProjectId ? "projet de l’auteur" : "—"}
           </p>
+          {basedOn && (
+            <p>
+              <span className="text-muted">Remix de : </span>
+              <Link href={`/admin/templates/${basedOn.id}`} className="font-semibold hover:underline">
+                {basedOn.name}
+              </Link>
+            </p>
+          )}
           <p>
             <span className="text-muted">Envoyé le : </span>
             {formatDate(t.submittedAt ?? t.createdAt)}

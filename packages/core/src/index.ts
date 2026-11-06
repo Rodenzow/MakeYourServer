@@ -10,3 +10,6 @@ export * from "./plans";
 export * from "./backup-spec";
 export * from "./ai-patch";
 export * from "./publish";
+export * from "./audit";
+export * from "./scheduled-message";
+export * from "./template-update";

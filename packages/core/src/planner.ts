@@ -15,7 +15,7 @@ import {
   type StateOverwrite,
   type StateRole,
 } from "./guild-state";
-import { ALL_PERMISSIONS, PERMISSIONS, fromBitfield, permissionBit, type PermissionKey } from "./permissions";
+import { ALL_PERMISSIONS, PERMISSIONS, fromBitfield, isDangerous, permissionBit, type PermissionKey } from "./permissions";
 import { EVERYONE, type Category, type Channel, type Role, type ServerSpec } from "./schema";
 import { allChannels, extractTokens, findCategory, findChannel, normalizeChannelName } from "./spec-utils";
 import { validateSpec, type Issue } from "./validate";
@@ -50,6 +50,7 @@ export type OpKind =
   | "role.update"
   | "role.adopt"
   | "role.positions"
+  | "everyone.update"
   | "category.create"
   | "category.update"
   | "category.adopt"
@@ -411,6 +412,21 @@ export function buildPlan(input: PlanInput): Plan {
       rolesTouched = true;
     }
   }
+  /* -------------------- Permissions sensibles de @everyone -------------------- */
+  // Seul retrait possible : les permissions sensibles que le projet ne donne pas à @everyone.
+  const everyoneRemovals = scope.has("settings") ? everyoneDangerousRemovals(spec, state) : [];
+  if (everyoneRemovals.length) {
+    ops.push({
+      key: "everyone.update",
+      kind: "everyone.update",
+      phase: PHASE.roles,
+      label: "Retirer les permissions sensibles de @everyone",
+      impact: "existing",
+      destructive: false,
+      targetId: state.id,
+      details: [`Permissions retirées : ${everyoneRemovals.map((k) => PERMISSIONS[k].label).join(", ")}`],
+    });
+  }
   if (rolesTouched) {
     ops.push({ key: "role.positions", kind: "role.positions", phase: PHASE.rolePositions, label: "Ordonner la hiérarchie des rôles", impact: "update", destructive: false });
   }
@@ -516,7 +532,7 @@ export function buildPlan(input: PlanInput): Plan {
     }
   }
   if (!botHas("MANAGE_GUILD") && ops.some((o) => o.kind === "guild.settings")) block("bot-manage-guild", "Le bot a besoin de la permission « Gérer le serveur » pour appliquer les réglages.");
-  if (!botHas("MANAGE_ROLES") && ops.some((o) => o.kind.startsWith("role."))) block("bot-manage-roles", "Le bot a besoin de la permission « Gérer les rôles ».");
+  if (!botHas("MANAGE_ROLES") && ops.some((o) => o.kind.startsWith("role.") || o.kind === "everyone.update")) block("bot-manage-roles", "Le bot a besoin de la permission « Gérer les rôles ».");
   if (!botHas("MANAGE_CHANNELS") && ops.some((o) => o.kind.startsWith("channel.") || o.kind.startsWith("category."))) block("bot-manage-channels", "Le bot a besoin de la permission « Gérer les salons ».");
 
   /* -------------------- Éléments existants hors projet -------------------- */
@@ -744,6 +760,14 @@ function labelOf(spec: ServerSpec, id: string): string {
 
 function channelKindLabel(ch: Channel): string {
   return { text: "le salon textuel", voice: "le salon vocal", announcement: "le salon d’annonces", forum: "le forum", stage: "la conférence" }[ch.type];
+}
+
+/** Permissions sensibles de @everyone sur le serveur que le projet ne lui accorde pas (à retirer). */
+export function everyoneDangerousRemovals(spec: ServerSpec, state: GuildState): PermissionKey[] {
+  const role = state.roles.find((r) => r.id === state.id);
+  if (!role) return [];
+  const wanted = new Set(spec.everyone.permissions);
+  return fromBitfield(role.permissions).filter((k) => isDangerous(k) && !wanted.has(k));
 }
 
 export function roleDiff(role: Role, existing: StateRole): string[] {

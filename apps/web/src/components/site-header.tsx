@@ -11,6 +11,7 @@ const NAV = [
   { href: "/templates", label: "Templates" },
   { href: "/fonctionnement", label: "Comment ça marche" },
   { href: "/abonnement", label: "Offres" },
+  { href: "/aide", label: "Aide" },
 ];
 
 export async function SiteHeader() {

@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { and, audit, eq, getDb, gte, inArray, isNull, or, sql, subscriptions, templates, users } from "@mys/db";
+import { and, audit, eq, getDb, gte, inArray, isNull, or, sql, subscriptions, templateReviews, templates, users } from "@mys/db";
 import { HttpError, json, parseBody, withUser } from "@/lib/api";
 import { SESSION_COOKIE } from "@/lib/session";
+import { recomputeRating } from "@/lib/reviews";
 
 const Body = z.object({ confirm: z.literal("SUPPRIMER", { error: "Tapez SUPPRIMER pour confirmer." }) });
 
@@ -29,6 +30,9 @@ export const DELETE = withUser(async (req, user) => {
   await db.transaction(async (tx) => {
     // Les publications de la communauté sont retirées avec le compte de leur auteur.
     await tx.delete(templates).where(and(eq(templates.authorUserId, user.id), eq(templates.official, false)));
+    // Ses avis disparaissent aussi : la note des templates concernés est recalculée.
+    const reviewed = await tx.delete(templateReviews).where(eq(templateReviews.userId, user.id)).returning({ templateId: templateReviews.templateId });
+    for (const { templateId } of reviewed) await recomputeRating(tx, templateId);
     await tx.delete(users).where(eq(users.id, user.id));
   });
   const res = json({ deleted: true });

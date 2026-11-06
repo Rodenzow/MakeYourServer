@@ -39,11 +39,14 @@ export function currentPeriod(d = new Date()): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export type UsageMetric = "ai_generations" | "ai_edits" | "ai_cost_micros" | "ai_input_tokens" | "ai_output_tokens";
+export type UsageMetric = "ai_generations" | "ai_edits" | "ai_cost_micros" | "ai_input_tokens" | "ai_output_tokens" | "ai_trial";
+
+/** Période des compteurs « une fois par compte » (essai gratuit). */
+export const LIFETIME_PERIOD = "lifetime";
 
 export async function getUsage(userId: string, period = currentPeriod()): Promise<Record<UsageMetric, number>> {
   const rows = await getDb().select().from(usageCounters).where(and(eq(usageCounters.userId, userId), eq(usageCounters.period, period)));
-  const out = { ai_generations: 0, ai_edits: 0, ai_cost_micros: 0, ai_input_tokens: 0, ai_output_tokens: 0 } as Record<UsageMetric, number>;
+  const out = { ai_generations: 0, ai_edits: 0, ai_cost_micros: 0, ai_input_tokens: 0, ai_output_tokens: 0, ai_trial: 0 } as Record<UsageMetric, number>;
   for (const r of rows) out[r.metric as UsageMetric] = Number(r.value);
   return out;
 }

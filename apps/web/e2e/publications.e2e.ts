@@ -11,7 +11,7 @@ const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 
 async function session(discordId: string, username: string) {
   const db = getDb();
-  const [u] = await db.insert(users).values({ discordId, username, globalName: `${username} (affiché)` }).onConflictDoUpdate({ target: users.discordId, set: { username } }).returning();
+  const [u] = await db.insert(users).values({ discordId, username, globalName: `${username} (affiché)` }).onConflictDoUpdate({ target: users.discordId, set: { username, globalName: `${username} (affiché)` } }).returning();
   const token = randomBytes(24).toString("base64url");
   await db.insert(sessions).values({ tokenHash: createHash("sha256").update(token).digest("hex"), userId: u!.id, expiresAt: new Date(Date.now() + 3600_000) });
   return { user: u!, cookie: `mys_session=${token}` };

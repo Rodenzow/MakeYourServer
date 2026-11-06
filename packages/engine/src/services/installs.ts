@@ -13,7 +13,6 @@ import {
   inArray,
   installationSteps,
   installations,
-  projects,
   resourceMappings,
   sql,
   users,
@@ -21,6 +20,7 @@ import {
 import { translateDiscordError, type GuildGateway } from "../gateway";
 import { assertGuildAccess, BotMissingError } from "./access";
 import { getEntitlement } from "./quotas";
+import { getAccessibleProject } from "./project-access";
 import { QuotaError } from "./backups";
 
 export class InstallError extends Error {
@@ -81,8 +81,10 @@ interface Source {
 async function loadSource(userId: string, source: PrepareInput["source"], guildId: string): Promise<Source> {
   const db = getDb();
   if ("projectId" in source) {
-    const [project] = await db.select().from(projects).where(and(eq(projects.id, source.projectId), eq(projects.userId, userId)));
-    if (!project) throw new InstallError("Projet introuvable.", 404);
+    // Propriétaire ou co-gestionnaire : les droits Discord sur le serveur sont revérifiés à part.
+    const access = await getAccessibleProject(userId, source.projectId);
+    if (!access) throw new InstallError("Projet introuvable.", 404);
+    const { project } = access;
     return { spec: project.spec, scopeId: `project:${project.id}`, kind: "install", projectId: project.id, extraMapping: {} };
   }
   const [backup] = await db.select().from(backups).where(and(eq(backups.id, source.backupId), eq(backups.userId, userId)));

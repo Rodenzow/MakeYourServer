@@ -63,7 +63,7 @@ export function ServerTree({
           <IconChevronDown size={14} />
         </div>
       )}
-      {categories.length === 0 && <p className="px-2 py-4 text-center text-light/50">{emptyLabel}</p>}
+      {categories.length === 0 && <p className="px-2 py-4 text-center text-light/70">{emptyLabel}</p>}
       <ul className="space-y-2">
         <AnimatePresence initial={false}>
           {categories.map((cat) => (
@@ -114,11 +114,11 @@ export function ServerTree({
                           ch.status === "deleted" && "line-through",
                         )}
                       >
-                        <span className="shrink-0 text-light/55">
+                        <span className="shrink-0 text-light/70">
                           <ChannelIcon type={ch.type} size={15} />
                         </span>
                         <span className="min-w-0 flex-1 truncate">{ch.name}</span>
-                        {(ch.private || ch.status === "hidden") && <IconLock size={12} className="shrink-0 text-light/45" />}
+                        {(ch.private || ch.status === "hidden") && <IconLock size={12} className="shrink-0 text-light/60" />}
                         <StatusPill status={ch.status} />
                       </button>
                     </motion.li>

@@ -1,6 +1,6 @@
 import "server-only";
 import { getSetting, type AiSettings } from "@mys/db";
-import { getEntitlement, getUsage, incrementUsage, platformUsage, type Entitlement } from "@mys/engine";
+import { LIFETIME_PERIOD, getEntitlement, getUsage, incrementUsage, platformUsage, type Entitlement } from "@mys/engine";
 import { HttpError } from "../api";
 import { env } from "../env";
 import type { AiUsage } from "./provider";
@@ -12,6 +12,8 @@ export interface AiAllowance {
   entitlement: Entitlement;
   used: number;
   limit: number;
+  /** Conception offerte (essai d’un compte gratuit). */
+  trial: boolean;
 }
 
 const fmt = (micros: number) => `${(micros / 1_000_000).toFixed(2)} $`;
@@ -25,13 +27,29 @@ export async function assertAiAllowed(userId: string, kind: AiKind): Promise<AiA
   if (!settings.enabled) throw new HttpError(503, "La conception par IA est temporairement désactivée par l’administration.", "ai_disabled");
   const entitlement = await getEntitlement(userId);
   const q = entitlement.quotas;
-  const limit = kind === "create" ? q.aiGenerationsPerMonth : q.aiEditsPerMonth;
-  if (limit <= 0) {
-    throw new HttpError(402, "La conception et les modifications par IA font partie de l’offre Premium. Les templates complets restent gratuits.", "premium_required");
-  }
+  let limit = kind === "create" ? q.aiGenerationsPerMonth : q.aiEditsPerMonth;
+  let trial = false;
+  let used: number;
   const usage = await getUsage(userId);
-  const used = kind === "create" ? usage.ai_generations : usage.ai_edits;
-  if (used >= limit) {
+  if (limit <= 0) {
+    // Essai : une conception complète offerte une fois par compte, pour découvrir le Premium.
+    const trialUsed = kind === "create" && settings.trialGenerations > 0 ? (await getUsage(userId, LIFETIME_PERIOD)).ai_trial : Number.POSITIVE_INFINITY;
+    if (trialUsed >= (settings.trialGenerations ?? 0)) {
+      throw new HttpError(
+        402,
+        kind === "create" && settings.trialGenerations > 0
+          ? "Votre conception offerte a déjà été utilisée. Passez au Premium pour concevoir d’autres serveurs avec l’IA ; les templates complets restent gratuits."
+          : "Les modifications par IA font partie de l’offre Premium. Les templates complets restent gratuits.",
+        "premium_required",
+      );
+    }
+    trial = true;
+    used = trialUsed;
+    limit = settings.trialGenerations;
+  } else {
+    used = kind === "create" ? usage.ai_generations : usage.ai_edits;
+  }
+  if (!trial && used >= limit) {
     throw new HttpError(402, `Quota mensuel atteint : ${used}/${limit} ${kind === "create" ? "conceptions" : "modifications"} IA ce mois-ci. Il sera renouvelé le 1er du mois.`, "quota");
   }
   if (env.aiProvider !== "mock") {
@@ -44,7 +62,7 @@ export async function assertAiAllowed(userId: string, kind: AiKind): Promise<AiA
       throw new HttpError(503, "Le budget IA de la plateforme est épuisé pour ce mois. Réessayez plus tard ou contactez l’équipe.", "ai_budget");
     }
   }
-  return { settings, entitlement, used, limit };
+  return { settings, entitlement, used, limit, trial };
 }
 
 /** Coût estimé à partir des prix saisis dans l’administration (écriture en cache ×1,25, lecture ×0,1). */
@@ -65,9 +83,10 @@ export function addUsage(a: AiUsage, b: AiUsage): AiUsage {
 export const ZERO_USAGE: AiUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
 
 /** Comptabilise la consommation, y compris en cas d’échec si des jetons ont été consommés. */
-export async function recordUsage(userId: string, kind: AiKind, usage: AiUsage, cost: number, succeeded: boolean) {
+export async function recordUsage(userId: string, kind: AiKind, usage: AiUsage, cost: number, succeeded: boolean, trial = false) {
   const consumed = usage.inputTokens + usage.outputTokens + usage.cacheReadTokens + usage.cacheWriteTokens > 0;
   if (succeeded || consumed) await incrementUsage(userId, kind === "create" ? "ai_generations" : "ai_edits", 1);
+  if (trial && (succeeded || consumed)) await incrementUsage(userId, "ai_trial", 1, LIFETIME_PERIOD);
   await incrementUsage(userId, "ai_input_tokens", usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens);
   await incrementUsage(userId, "ai_output_tokens", usage.outputTokens);
   await incrementUsage(userId, "ai_cost_micros", cost);

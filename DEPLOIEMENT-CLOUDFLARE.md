@@ -45,6 +45,7 @@ Comptez environ **45 minutes** la première fois. Aucun outil n’est à install
 3. Dans **Permissions**, ajoutez (bouton *+ Add more*) :
    - `Account` · `Containers` · `Edit`
    - `Account` · `Hyperdrive` · `Edit` *(le site se connecte à la base via Hyperdrive, créé automatiquement)*
+   - *Facultatif, seulement pour copier les sauvegardes dans R2 (étape 11)* : `Account` · `Workers R2 Storage` · `Edit`
 4. **Account Resources** : *Include* → votre compte. **Zone Resources** : *All zones* (sans effet sans domaine).
 5. **Continue to summary** → **Create Token**. Copiez le jeton **immédiatement** (il ne sera plus affiché) : c’est `CLOUDFLARE_API_TOKEN`.
 
@@ -109,6 +110,8 @@ Puis, sur GitHub : dépôt **rodenzow/makeyourserver** → **Settings → Secret
 | `ANTHROPIC_API_KEY` | clé API <https://console.anthropic.com> (IA Premium) | facultatif |
 | `STRIPE_SECRET_KEY` | clé secrète Stripe | facultatif |
 | `STRIPE_WEBHOOK_SECRET` | secret du webhook Stripe | facultatif |
+| `ALERT_WEBHOOK_URL` | adresse d’un webhook Discord pour les alertes (étape 11) | facultatif |
+| `BACKUP_ENCRYPTION_KEY` | clé de chiffrement des sauvegardes de la base (étape 11) ; à défaut, `APP_ENCRYPTION_KEY` est utilisée | facultatif |
 
 **Onglet *Variables* → *New repository variable*** (toutes facultatives) :
 
@@ -119,6 +122,8 @@ Puis, sur GitHub : dépôt **rodenzow/makeyourserver** → **Settings → Secret
 | `HYPERDRIVE_ID` | voir l’étape 9 |
 | `APP_URL` | seulement quand vous aurez un nom de domaine (ex. `https://makeyourserver.fr`) |
 | `AI_MODEL` | modèle d’IA par défaut (sinon celui réglé dans l’administration) |
+| `CF_ANALYTICS_TOKEN` | statistiques de visite sans cookie, Cloudflare Web Analytics (étape 11) |
+| `R2_BACKUP_BUCKET` | nom d’un bucket Cloudflare R2 qui reçoit aussi une copie des sauvegardes (étape 11) |
 
 > 🔒 Les secrets ne sont jamais affichés dans les journaux GitHub : le workflow les transmet directement à Cloudflare.
 
@@ -169,6 +174,112 @@ Pour utiliser une configuration existante, définissez la variable GitHub `HYPER
 - **IA Premium** : ajoutez `ANTHROPIC_API_KEY`, relancez le workflow, puis réglez modèle, prix et budget mensuel dans *Administration → IA & coûts*.
 - **Stripe** : webhook à déclarer sur `https://make-your-server.<sous-domaine>.workers.dev/api/billing/webhook` (événements listés dans le README, section *Paiements*). L’identifiant de prix se saisit dans *Administration → Offres & quotas* : aucun prix n’est codé en dur.
 
+## Étape 11 — Facultatif : tests, sauvegardes, alertes et statistiques
+
+Tout ce qui suit est **facultatif** : le site et le bot fonctionnent sans. Chaque fonction s’active en ajoutant un secret ou une variable GitHub (étape 5), puis **Actions → Run workflow** si besoin.
+
+### Tests automatiques avant chaque mise en ligne (rien à faire)
+
+Le workflow `.github/workflows/ci.yml` (**Intégration continue**) se lance sur chaque *pull request* et sur chaque push d’une autre branche que `main`. Il vérifie les types, exécute les tests unitaires, construit le site et lance les tests de bout en bout (base PostgreSQL jetable, serveur Discord simulé). Aucun secret n’est nécessaire.
+
+Dans une *pull request*, attendez la coche verte ✅ avant de cliquer sur **Merge** : une croix rouge ❌ signale un problème (cliquez sur **Details** pour le lire). Un nouveau push sur la même branche annule l’exécution précédente.
+
+> 💡 Pour l’imposer : **Settings → Rules → Rulesets → New branch ruleset** sur `main` → *Require status checks to pass* → ajoutez **Types, tests unitaires et de bout en bout**.
+
+### Sauvegarde quotidienne de la base
+
+Le workflow `.github/workflows/backup-db.yml` (**Sauvegarde de la base**) tourne **chaque nuit à 3 h 17 (UTC)**. Il copie la base Supabase (`pg_dump`), la **chiffre** aussitôt (aucune copie en clair n’est écrite), puis la dépose en **artefact GitHub conservé 30 jours**. Il fonctionne dès que `DATABASE_URL` et `APP_ENCRYPTION_KEY` existent : rien d’autre à configurer.
+
+**Recommandé : une clé dédiée.** Créez le secret `BACKUP_ENCRYPTION_KEY` (même méthode que `APP_ENCRYPTION_KEY` : `openssl rand -base64 32`). Sans lui, `APP_ENCRYPTION_KEY` sert de clé.
+
+> ⚠️ **Gardez une copie de la clé hors de GitHub** (gestionnaire de mots de passe). GitHub ne réaffiche jamais un secret : sans copie, vos sauvegardes seraient illisibles. Si vous changez la clé, les anciennes sauvegardes restent chiffrées avec l’ancienne.
+
+Pour lancer une sauvegarde tout de suite : **Actions → Sauvegarde de la base → Run workflow**. Le fichier apparaît en bas de la page de l’exécution, rubrique **Artifacts**.
+
+> 🔒 Les artefacts ne sont téléchargeables que par les personnes qui ont accès au dépôt (pour un dépôt public : par tout compte GitHub connecté). C’est pourquoi le fichier est toujours chiffré (AES-256).
+
+**Copie supplémentaire dans Cloudflare R2 (facultatif)**, pour garder une copie hors de GitHub :
+
+1. Cloudflare → **R2 Object Storage** → activez R2 si c’est demandé (10 Go gratuits par mois) → **Create bucket** → nom : `make-your-server-sauvegardes` → **Create bucket**.
+2. Dans le bucket : **Settings → Object lifecycle rules → Add rule** → préfixe `base/` → supprimer les objets après **30 jours** (sinon les copies s’accumulent).
+3. Modifiez le jeton API de l’étape 2 : ajoutez **Account · Workers R2 Storage · Edit**.
+4. Variable GitHub `R2_BACKUP_BUCKET` = `make-your-server-sauvegardes`.
+
+Les copies sont rangées dans le dossier `base/` du bucket, chiffrées de la même manière.
+
+#### Restaurer une sauvegarde
+
+> ⚠️ Une restauration **remplace** les données actuelles de la base. Faites-la de préférence d’abord vers un **nouveau projet Supabase**, pour vérifier son contenu.
+
+Il vous faut, sur votre ordinateur : `openssl` (déjà présent sur macOS et Linux ; sous Windows, utilisez *Git Bash*) et les outils PostgreSQL **version 17 ou plus** (`pg_restore`) : <https://www.postgresql.org/download/> (sous macOS : `brew install postgresql@17`).
+
+1. Téléchargez l’artefact (page de l’exécution → **Artifacts**) ou la copie R2 (bucket → fichier → **Download**), puis décompressez le `.zip`. Vous obtenez `mys-base-AAAA-MM-JJ-HHMM.dump.enc` et un fichier `.sha256`.
+2. Vérifiez qu’il est intact (facultatif) :
+   ```bash
+   sha256sum -c mys-base-AAAA-MM-JJ-HHMM.dump.enc.sha256
+   ```
+3. Déchiffrez-le. La commande demande un mot de passe : collez la clé (`BACKUP_ENCRYPTION_KEY`, ou `APP_ENCRYPTION_KEY` si vous n’avez pas créé de clé dédiée) :
+   ```bash
+   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in mys-base-AAAA-MM-JJ-HHMM.dump.enc -out sauvegarde.dump
+   ```
+   « bad decrypt » signifie que la clé n’est pas la bonne.
+4. Vérifiez le contenu (liste des tables) :
+   ```bash
+   pg_restore --list sauvegarde.dump | head -n 30
+   ```
+5. Restaurez dans la base (URI *Session pooler*, port 5432, comme à l’étape 3) :
+   ```bash
+   pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction \
+     --dbname="postgresql://postgres.abcdefghijkl:MotDePasse@aws-0-eu-west-3.pooler.supabase.com:5432/postgres?sslmode=require" \
+     sauvegarde.dump
+   ```
+6. Si vous avez restauré dans un nouveau projet Supabase : mettez à jour le secret `DATABASE_URL`, puis **Actions → Déploiement Cloudflare → Run workflow**.
+7. Supprimez `sauvegarde.dump` de votre ordinateur : il n’est pas chiffré.
+
+### Alertes Discord
+
+Recevez un message dans un salon de votre serveur Discord d’administration quand :
+- le bot n’est **plus connecté à Discord** deux contrôles de suite (environ 10 minutes), puis un message quand il est **rétabli** (rien n’est répété entre les deux) ;
+- une **installation échoue** ou ne réussit qu’en partie (au plus une alerte par serveur et par heure ; les simulations sont ignorées) ;
+- un template public est **signalé** par un membre.
+
+Les alertes ne contiennent aucune donnée sensible (ni jeton, ni pseudo, ni texte libre) et ne mentionnent personne.
+
+1. Dans Discord, sur votre serveur d’administration : ouvrez les **paramètres du salon** choisi (par exemple `#alertes`, visible des seuls admins) → **Intégrations** → **Webhooks** → **Nouveau webhook** → nommez-le « Make Your Server » → **Copier l’URL du webhook**.
+2. Secret GitHub `ALERT_WEBHOOK_URL` = cette adresse (elle commence par `https://discord.com/api/webhooks/`).
+3. **Actions → Déploiement Cloudflare → Run workflow** : le site et le bot la reçoivent (le bot redémarre une fois pour la prendre en compte).
+
+> 🔒 L’adresse d’un webhook permet d’écrire dans le salon : gardez-la secrète. Si elle a fuité, supprimez le webhook dans Discord et créez-en un autre.
+
+Pour couper les alertes : supprimez le webhook dans Discord (ou le secret `ALERT_WEBHOOK_URL` sur GitHub **et** dans Cloudflare : **Workers & Pages → make-your-server / make-your-server-bot → Settings → Variables and Secrets**).
+
+### Statistiques de visite sans cookie (Cloudflare Web Analytics)
+
+Mesure d’audience gratuite, **sans cookie** ni suivi individuel : aucun bandeau de consentement n’est nécessaire. La politique de confidentialité le mentionne automatiquement dès que la fonction est active.
+
+1. Cloudflare → **Analytics & Logs → Web Analytics** → **Add a site**.
+2. *Hostname* : l’adresse de votre site sans `https://` (ex. `make-your-server.<sous-domaine>.workers.dev`, ou votre nom de domaine) → **Done**.
+3. Choisissez l’installation **manuelle** (*JS Snippet*) : Cloudflare affiche un extrait qui contient `data-cf-beacon='{"token": "…"}'`. Copiez **uniquement la valeur du token** (une suite de 32 lettres et chiffres).
+4. Variable GitHub `CF_ANALYTICS_TOKEN` = ce token → **Actions → Déploiement Cloudflare → Run workflow**.
+
+Les statistiques apparaissent dans **Web Analytics** après quelques visites.
+
+### Limites anti-abus (automatique)
+
+Le site limite les requêtes d’écriture vers son API **par adresse IP** (Workers Rate Limiting, réglé dans `apps/web/wrangler.jsonc`) :
+
+| Adresses | Limite |
+| --- | --- |
+| Toutes les écritures vers `/api/…` | 60 par minute |
+| Fonctions d’IA (`/api/ai/…`) | 10 par minute |
+| Signalements de templates | 5 par minute |
+
+Au-delà, le visiteur reçoit le message « Trop de requêtes en peu de temps. Patientez une minute avant de réessayer. ». La connexion Discord et le webhook Stripe ne sont jamais limités. Pour ajuster une limite, modifiez `limit` dans `apps/web/wrangler.jsonc` (période : 10 ou 60 secondes), puis publiez.
+
+### Aperçus des liens partagés (automatique)
+
+Un lien du site collé dans Discord, X ou WhatsApp affiche une **image d’aperçu** (1200 × 630) : pour un template, son dégradé, son emoji, son nom, son accroche et ses statistiques ; pour les autres pages, une image générale du site. Ces images sont calculées à la demande puis gardées un jour en cache. Discord garde aussi l’aperçu en mémoire quelque temps : une modification peut mettre un moment à apparaître.
+
 ## Plus tard : un nom de domaine
 
 1. Achetez le domaine (chez Cloudflare Registrar, c’est le plus simple) ou ajoutez-le à Cloudflare.
@@ -195,6 +306,11 @@ Pour utiliser une configuration existante, définissez la variable GitHub `HYPER
 | `/sante` : « Base de données injoignable » | Vérifiez `DATABASE_URL` : *Session pooler*, port `5432`, mot de passe correct, `?sslmode=require`. |
 | `/sante` ne répond pas juste après un déploiement | Le premier démarrage d’un conteneur prend quelques minutes ; un relanceur automatique le redémarre toutes les 5 minutes s’il s’est arrêté. |
 | Les commandes `/mys` n’apparaissent pas | Les commandes globales mettent jusqu’à 1 h à se propager. Pour un essai immédiat, définissez `DISCORD_DEV_GUILD_ID`. |
+| « Sauvegarde de la base » : `server version mismatch` | Le workflow installe le `pg_dump` le plus récent ; relancez-le. Si l’erreur persiste, Supabase utilise une version plus récente que celle du dépôt PostgreSQL : signalez-le. |
+| « Sauvegarde de la base » : `connection` ou `password authentication failed` | Vérifiez `DATABASE_URL` (URI *Session pooler*, port 5432). |
+| Copie R2 : `Authentication error` ou `10000` | Le jeton API n’a pas la permission **Workers R2 Storage · Edit**, ou le bucket `R2_BACKUP_BUCKET` n’existe pas. |
+| Aucune alerte Discord | `ALERT_WEBHOOK_URL` doit commencer par `https://discord.com/api/webhooks/` ; relancez le déploiement après l’avoir ajoutée. Le webhook a-t-il été supprimé dans Discord ? |
+| Des visiteurs reçoivent « Trop de requêtes » | Plusieurs personnes partagent la même adresse IP (école, entreprise) : augmentez `limit` dans `apps/web/wrangler.jsonc`. |
 | Le bot redémarre souvent (beaucoup de serveurs) | Le champ `memoireMo` de `/sante` approche 256 : dans `apps/bot-host/src/index.ts`, passez `BOT_INSTANCE` de `"lite"` à `"standard-1"` (4 Gio, plus cher : voir la grille tarifaire). |
 
 **Journaux en direct** : Cloudflare → **Workers & Pages** → `make-your-server` (site) ou `make-your-server-bot` (bot) → **Logs**.
@@ -213,5 +329,5 @@ cd apps/web && pnpm cf:deploy
 npx wrangler secret put DATABASE_URL     # répétez pour chaque secret de l’étape 5 + APP_URL
 # Bot
 cd ../bot-host && npx wrangler deploy
-npx wrangler secret put DATABASE_URL     # DATABASE_URL, DISCORD_BOT_TOKEN, DISCORD_CLIENT_ID, APP_URL
+npx wrangler secret put DATABASE_URL     # DATABASE_URL, DISCORD_BOT_TOKEN, DISCORD_CLIENT_ID, APP_URL (+ ALERT_WEBHOOK_URL, facultatif)
 ```

@@ -4,6 +4,9 @@ import { ActionButton } from "@/components/admin/action-button";
 import { Badge, EmptyState, PageHeader, cx, formatDate } from "@/components/ui";
 import { listCommunitySubmissions, listOpenReports, moderationCounts } from "@/lib/admin";
 import { REPORT_REASONS } from "@/lib/publications";
+import { listRecentReviews } from "@/lib/reviews";
+import { formatRating } from "@/lib/community-rules";
+import { Stars } from "@/components/templates/stars";
 
 export const metadata = { title: "Publications" };
 
@@ -13,6 +16,7 @@ const TABS = {
   publies: { label: "Publiés", status: "published" },
   refuses: { label: "Refusés", status: "rejected" },
   retires: { label: "Retirés", status: "archived" },
+  avis: { label: "Avis", status: null },
 } as const;
 type Tab = keyof typeof TABS;
 
@@ -25,7 +29,11 @@ export default async function AdminPublications({ searchParams }: { searchParams
   const tab: Tab = onglet && onglet in TABS ? (onglet as Tab) : "attente";
   const counts = await moderationCounts();
   const status = TABS[tab].status;
-  const [rows, reports] = await Promise.all([status ? listCommunitySubmissions(status) : Promise.resolve([]), tab === "signalements" ? listOpenReports() : Promise.resolve([])]);
+  const [rows, reports, reviews] = await Promise.all([
+    status ? listCommunitySubmissions(status) : Promise.resolve([]),
+    tab === "signalements" ? listOpenReports() : Promise.resolve([]),
+    tab === "avis" ? listRecentReviews(100) : Promise.resolve([]),
+  ]);
 
   return (
     <>
@@ -49,7 +57,47 @@ export default async function AdminPublications({ searchParams }: { searchParams
         })}
       </nav>
 
-      {tab === "signalements" ? (
+      {tab === "avis" ? (
+        reviews.length === 0 ? (
+          <EmptyState title="Aucun avis pour le moment">Les avis laissés par les membres sur les templates apparaîtront ici, du plus récent au plus ancien.</EmptyState>
+        ) : (
+          <>
+            <p className="mb-3 text-sm text-muted">
+              Masquez un avis injurieux, hors sujet ou contraire aux règles de Discord : il disparaît de la fiche et n’est plus compté dans la note. Vous pouvez le réafficher à tout moment.
+            </p>
+            <ul className="space-y-3">
+              {reviews.map((r) => (
+                <li key={r.id} className={cx("panel flex flex-wrap items-start justify-between gap-4 p-4", r.hiddenAt && "opacity-75")}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Stars value={r.rating} size={14} />
+                      <span className="sr-only">{formatRating(r.rating)} sur 5</span>
+                      <Link href={`/templates/${r.templateSlug}#avis`} className="font-semibold hover:underline">
+                        {r.templateName}
+                      </Link>
+                      {r.hiddenAt ? <Badge tone="danger">Masqué le {formatDate(r.hiddenAt)}</Badge> : <Badge tone="success">Visible</Badge>}
+                    </div>
+                    {r.comment ? <p className="mt-1 text-sm whitespace-pre-line text-ink">« {r.comment} »</p> : <p className="mt-1 text-sm text-muted italic">Note sans commentaire</p>}
+                    <p className="mt-1 text-xs text-muted">
+                      Par{" "}
+                      <Link href={`/admin/utilisateurs/${r.userId}`} className="underline">
+                        {r.globalName ?? r.username}
+                      </Link>{" "}
+                      (@{r.username}) le {formatDate(r.createdAt)}
+                      {r.updatedAt.getTime() - r.createdAt.getTime() > 60_000 && <> · modifié le {formatDate(r.updatedAt)}</>}
+                    </p>
+                  </div>
+                  {r.hiddenAt ? (
+                    <ActionButton url={`/api/admin/reviews/${r.id}`} body={{ action: "show" }} label="Réafficher" />
+                  ) : (
+                    <ActionButton url={`/api/admin/reviews/${r.id}`} body={{ action: "hide" }} label="Masquer" variant="danger" confirm="Masquer cet avis ? Il ne sera plus visible ni compté dans la note du template." />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      ) : tab === "signalements" ? (
         reports.length === 0 ? (
           <EmptyState title="Aucun signalement en attente">Les signalements des membres sur les templates publics apparaîtront ici.</EmptyState>
         ) : (
@@ -92,6 +140,8 @@ export default async function AdminPublications({ searchParams }: { searchParams
                     </Link>
                     <Badge>{THEME_LABELS[t.theme as keyof typeof THEME_LABELS] ?? t.theme}</Badge>
                     <Badge tone="blue">{t.sourceBackupId ? "Depuis une sauvegarde" : "Depuis un projet"}</Badge>
+                    {t.basedOnTemplateId && <Badge>Remix</Badge>}
+                    {t.featured && <Badge tone="warning">Sélection de l’équipe</Badge>}
                   </div>
                   <p className="mt-1 text-sm text-ink">{t.tagline}</p>
                   <p className="mt-2 text-xs text-muted">
@@ -103,6 +153,12 @@ export default async function AdminPublications({ searchParams }: { searchParams
                   {t.status !== "pending_review" && (
                     <p className="mt-1 font-mono text-xs text-muted">
                       {t.viewCount} vue{t.viewCount > 1 ? "s" : ""} · {t.installCount} installation{t.installCount > 1 ? "s" : ""}
+                      {t.ratingCount > 0 && (
+                        <>
+                          {" "}
+                          · ★ {formatRating(t.ratingSum / t.ratingCount)} ({t.ratingCount} avis)
+                        </>
+                      )}
                     </p>
                   )}
                   {t.reviewNote && <p className="mt-2 rounded-md bg-danger-soft px-2 py-1 text-xs text-danger">Motif : {t.reviewNote}</p>}
@@ -117,6 +173,12 @@ export default async function AdminPublications({ searchParams }: { searchParams
                   {t.status === "pending_review" && (
                     <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "reject" }} label="Refuser" variant="danger" prompt="Motif du refus (communiqué à l’auteur) :" promptKey="note" promptRequired />
                   )}
+                  {t.status === "published" &&
+                    (t.featured ? (
+                      <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "unfeature" }} label="Retirer de la sélection" />
+                    ) : (
+                      <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "feature" }} label="Mettre en avant" />
+                    ))}
                   {t.status === "published" && <ActionButton url={`/api/admin/templates/${t.id}`} body={{ action: "archive" }} label="Retirer" confirm="Retirer ce template de la bibliothèque publique ?" />}
                 </div>
               </div>

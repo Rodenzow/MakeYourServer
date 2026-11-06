@@ -1,5 +1,5 @@
 import { DEFAULT_QUOTAS, QUOTA_LABELS, type PlanQuotas } from "@mys/core";
-import { asc, getDb, plans } from "@mys/db";
+import { asc, getDb, getSetting, plans } from "@mys/db";
 import { getEntitlement, getUsage } from "@mys/engine";
 import { getCurrentUser } from "@/lib/session";
 import { discordStoreUrl, stripeEnabled } from "@/lib/billing";
@@ -33,6 +33,7 @@ const PREMIUM_INCLUDES = [
   "Plus de projets et de sauvegardes conservées, versionnées",
   "Sauvegardes programmées et restauration sélective",
   "Export de messages sélectionnés (republication signalée comme telle)",
+  "Messages programmés : annonces et rappels publiés par le bot à l’heure prévue",
 ];
 
 const FAQ: Array<[string, string]> = [
@@ -46,7 +47,8 @@ const FAQ: Array<[string, string]> = [
 export default async function OffersPage({ searchParams }: { searchParams: Promise<{ statut?: string }> }) {
   const { statut } = await searchParams;
   const user = await getCurrentUser();
-  const rows = await getDb().select().from(plans).orderBy(asc(plans.key));
+  const [rows, aiSettings] = await Promise.all([getDb().select().from(plans).orderBy(asc(plans.key)), getSetting("ai")]);
+  const trial = aiSettings.enabled ? aiSettings.trialGenerations : 0;
   const free = rows.find((p) => p.key === "free");
   const premium = rows.find((p) => p.key === "premium");
   const freeQ: PlanQuotas = { ...DEFAULT_QUOTAS.free, ...(free?.quotas ?? {}) };
@@ -59,7 +61,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="space-y-12">
-      <PageHeader eyebrow="Offres" title="Gratuit pour installer. Premium pour créer sans limites.">
+      <PageHeader eyebrow="Offres" title="Gratuit pour installer. Premium pour créer sans limites." help={{ href: "/aide#premium-contenu" }}>
         Tout ce qu’il faut pour un serveur complet est gratuit. Le Premium vous fait gagner des heures : décrivez votre serveur, l’IA le conçoit, et vos sauvegardes se font toutes seules.
       </PageHeader>
 
@@ -118,6 +120,11 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
             <span className="text-gradient">{premium?.priceLabel || "Bientôt disponible"}</span>
           </p>
           <p className="mt-1 text-sm text-muted">{premium?.description}</p>
+          {trial > 0 && ent?.planKey !== "premium" && (
+            <a href={user ? "/ia" : "/connexion?suivant=/ia"} className="mt-3 inline-flex items-center gap-2 self-start rounded-full border border-light/40 bg-light/10 px-3 py-1 text-xs font-semibold text-light hover:bg-light/20">
+              <IconSparkle size={13} /> {trial > 1 ? `${trial} conceptions IA offertes` : "1 conception IA offerte"} pour essayer, sans carte bancaire →
+            </a>
+          )}
 
           <dl className="mt-5 grid grid-cols-3 gap-2 text-center">
             {[

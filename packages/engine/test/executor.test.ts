@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DISCORD_CHANNEL_TYPE, toBitfield } from "@mys/core";
 import { OFFICIAL_TEMPLATES } from "@mys/core/templates";
-import { eq, getDb, guildFeatures, installationSteps, installations, resourceMappings, backups } from "@mys/db";
+import { eq, getDb, guildFeatures, installationSteps, installations, projectMembers, resourceMappings, backups } from "@mys/db";
 import {
   AccessDeniedError,
   FakeGateway,
@@ -11,6 +11,7 @@ import {
   cancelInstallation,
   confirmInstallation,
   createBackup,
+  getAccessibleProject,
   prepareInstallation,
   retryInstallation,
   runInstallation,
@@ -203,6 +204,26 @@ describe("droits et accès", () => {
     const other = await createUser("300000000000000003");
     const project = await createProject(other.id, templateSpec("communaute"));
     await expect(prepareInstallation(gw, { userId: owner.id, guildId: gw.state.id, source: { projectId: project.id }, options: { mode: "merge" } })).rejects.toBeInstanceOf(InstallError);
+  });
+
+  it("permet à un co-gestionnaire d’installer le projet partagé, droits Discord revérifiés", async () => {
+    const gw = FakeGateway.emptyGuild();
+    const installer = await createUser(gw.state.ownerId);
+    const owner = await createUser("500000000000000005");
+    const project = await createProject(owner.id, templateSpec("communaute"));
+    // Sans invitation : refusé.
+    await expect(prepareInstallation(gw, { userId: installer.id, guildId: gw.state.id, source: { projectId: project.id }, options: { mode: "merge" } })).rejects.toBeInstanceOf(InstallError);
+    await getDb().insert(projectMembers).values({ projectId: project.id, userId: installer.id, role: "editor", addedByUserId: owner.id });
+    expect((await getAccessibleProject(installer.id, project.id))?.role).toBe("editor");
+    expect((await getAccessibleProject(owner.id, project.id))?.role).toBe("owner");
+    const { installation, plan } = await prepareInstallation(gw, { userId: installer.id, guildId: gw.state.id, source: { projectId: project.id }, options: { mode: "merge" } });
+    expect(plan.summary.create).toBeGreaterThan(0);
+    expect(installation.userId).toBe(installer.id);
+    // Un membre du projet SANS droits sur le serveur Discord reste refusé.
+    gw.members.set("600000000000000006", []);
+    const noRights = await createUser("600000000000000006");
+    await getDb().insert(projectMembers).values({ projectId: project.id, userId: noRights.id, role: "editor", addedByUserId: owner.id });
+    await expect(prepareInstallation(gw, { userId: noRights.id, guildId: gw.state.id, source: { projectId: project.id }, options: { mode: "merge" } })).rejects.toBeInstanceOf(AccessDeniedError);
   });
 
   it("revérifie les droits au moment de l’exécution", async () => {

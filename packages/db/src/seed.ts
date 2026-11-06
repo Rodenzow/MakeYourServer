@@ -2,6 +2,7 @@ import { DEFAULT_QUOTAS, ServerSpecSchema } from "@mys/core";
 import { OFFICIAL_TEMPLATES, detectFeatures } from "@mys/core/templates";
 import { getDb } from "./client";
 import { plans, templates } from "./schema";
+import { sql } from "drizzle-orm";
 
 /**
  * Données initiales : offres (sans prix : à saisir dans l’administration) et
@@ -35,13 +36,27 @@ export async function seed() {
       status: "published",
       popularity: t.popularity,
       publishedAt: new Date(),
+      specUpdatedAt: new Date(),
     };
     await db
       .insert(templates)
       .values(values)
       .onConflictDoUpdate({
         target: templates.slug,
-        set: { name: values.name, tagline: values.tagline, description: values.description, audience: values.audience, highlights: values.highlights, theme: values.theme, size: values.size, features: values.features, spec: values.spec, updatedAt: new Date() },
+        set: {
+          name: values.name,
+          tagline: values.tagline,
+          description: values.description,
+          audience: values.audience,
+          highlights: values.highlights,
+          theme: values.theme,
+          size: values.size,
+          features: values.features,
+          spec: values.spec,
+          // Le contenu n’est daté que s’il change réellement (avis de mise à jour aux installateurs).
+          specUpdatedAt: sql`case when ${templates.spec} is distinct from excluded.spec then now() else ${templates.specUpdatedAt} end`,
+          updatedAt: new Date(),
+        },
       });
   }
   return { templates: OFFICIAL_TEMPLATES.length };

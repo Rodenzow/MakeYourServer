@@ -1,9 +1,9 @@
 import { IconCheck, IconX } from "./icons";
 
 export function StepIcon({ status }: { status: string }) {
-  if (status === "succeeded") return <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-success text-white"><IconCheck size={13} /></span>;
+  if (status === "succeeded") return <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-success text-paper" aria-label="Réussie"><IconCheck size={13} /></span>;
   if (status === "skipped") return <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-mist text-[10px] font-bold text-ink" title="Déjà fait">=</span>;
-  if (status === "failed") return <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-danger text-white"><IconX size={13} /></span>;
+  if (status === "failed") return <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-danger text-paper" aria-label="Échec"><IconX size={13} /></span>;
   if (status === "cancelled") return <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-mist text-[10px] text-muted">—</span>;
   if (status === "running")
     return (

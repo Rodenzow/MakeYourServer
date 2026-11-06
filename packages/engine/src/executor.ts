@@ -17,6 +17,7 @@ import {
   toBitfield,
   welcomeScreenPayload,
   effectiveChannelOverwrites,
+  everyoneDangerousRemovals,
   type GuildState,
   type Resolver,
   type ServerSpec,
@@ -42,6 +43,7 @@ import { GatewayError, translateDiscordError, type GuildGateway } from "./gatewa
 import { SimulatedCrash } from "./fake-gateway";
 import { assertGuildAccess, AccessDeniedError, BotMissingError } from "./services/access";
 import { createBackup } from "./services/backups";
+import { alertInstallationProblem } from "./alerts";
 
 type InstallationRow = typeof installations.$inferSelect;
 type StepRow = typeof installationSteps.$inferSelect;
@@ -218,6 +220,7 @@ async function finishWithError(inst: InstallationRow, message: string) {
     .where(and(eq(installationSteps.installationId, inst.id), sql`${installationSteps.status} in ('pending','running')`));
   const [row] = await db.update(installations).set({ status: "failed", error: message, finishedAt: new Date() }).where(eq(installations.id, inst.id)).returning();
   await audit({ actorUserId: inst.userId, actorType: "system", action: "installation.failed", targetType: "installation", targetId: inst.id, guildId: inst.guildId, metadata: { reason: message } });
+  void alertInstallationProblem({ installationId: inst.id, guildId: inst.guildId, kind: inst.kind, status: "failed", dryRun: inst.dryRun, reason: message });
   return row!;
 }
 
@@ -237,6 +240,9 @@ async function finalize(installationId: string, deps: ExecutorDeps) {
     if (p?.t) await db.update(templates).set({ installCount: sql`${templates.installCount} + 1` }).where(eq(templates.id, p.t));
   }
   await audit({ actorUserId: inst?.userId, actorType: "system", action: `installation.${status}`, targetType: "installation", targetId: installationId, guildId: inst?.guildId, metadata: { ok, failed, cancelled, dryRun: inst?.dryRun } });
+  if (inst && (status === "failed" || status === "partial")) {
+    void alertInstallationProblem({ installationId, guildId: inst.guildId, kind: inst.kind, status, dryRun: inst.dryRun, failedSteps: failed, totalSteps: steps.length });
+  }
   await deps.onProgress?.(installationId);
   return row!;
 }
@@ -299,6 +305,16 @@ async function executeStep(ctx: Ctx, step: StepRow & { startedAt: Date }, resume
       if (!state.roles.some((r) => r.id === target)) fail("Le rôle existant a été supprimé entre-temps. Relancez l’analyse.");
       if (step.kind === "role.update") await gateway.editRole(g, target, rolePayload(role), ctx.reason);
       return { status: "succeeded", detail: step.kind === "role.update" ? "Rôle mis à jour." : "Rôle existant réutilisé tel quel.", map: [{ localId, discordId: target, kind: "role", origin: "adopted" }] };
+    }
+    case "everyone.update": {
+      await refresh(ctx);
+      const everyone = ctx.state.roles.find((r) => r.id === g) ?? fail("Rôle @everyone introuvable.");
+      const removals = everyoneDangerousRemovals(spec, ctx.state);
+      if (!removals.length) return { status: "skipped", detail: "@everyone n’a déjà plus de permission sensible." };
+      const next = BigInt(everyone.permissions) & ~toBitfield(removals);
+      await gateway.editRole(g, g, { permissions: next.toString() }, ctx.reason);
+      everyone.permissions = next.toString();
+      return { status: "succeeded", detail: `${removals.length} permission(s) sensible(s) retirée(s) à @everyone.` };
     }
     case "role.positions": {
       await refresh(ctx);

@@ -6,11 +6,14 @@
 // 2. Les pages publiques vues par un visiteur NON connecté sont mises en cache en
 //    périphérie (Cache API) : affichage quasi instantané, rafraîchi en arrière-plan.
 //    Un visiteur connecté (cookie de session) obtient toujours une page calculée pour lui.
+// 3. Les images de partage (opengraph-image) sont mises en cache un jour en périphérie.
+// 4. Limites anti-abus sur les écritures vers /api/* (src/lib/rate-limit.ts).
 // @ts-expect-error — fichier produit par `opennextjs-cloudflare build`
 import handler from "./.open-next/worker.js";
 
 // @ts-expect-error — idem
 export { DOQueueHandler, DOShardedTagCache, BucketCachePurge } from "./.open-next/worker.js";
+import { checkRateLimit, type RateLimitEnv } from "./src/lib/rate-limit";
 
 interface Ctx {
   waitUntil(p: Promise<unknown>): void;
@@ -18,11 +21,27 @@ interface Ctx {
 
 const SESSION_COOKIE = "mys_session";
 /** Pages publiques identiques pour tous les visiteurs non connectés. */
-const PUBLIC_PAGES = [/^\/$/, /^\/templates$/, /^\/templates\/[a-z0-9-]{1,120}$/, /^\/fonctionnement$/, /^\/confidentialite$/, /^\/conditions$/, /^\/connexion$/, /^\/abonnement$/];
+const PUBLIC_PAGES = [
+  /^\/$/,
+  /^\/templates$/,
+  /^\/templates\/[a-z0-9-]{1,120}$/,
+  /^\/createurs\/[0-9a-f-]{36}$/,
+  /^\/trouver$/,
+  /^\/aide$/,
+  /^\/aide\/glossaire$/,
+  /^\/fonctionnement$/,
+  /^\/confidentialite$/,
+  /^\/conditions$/,
+  /^\/connexion$/,
+  /^\/abonnement$/,
+];
 /** Au-delà, la page en cache est encore servie mais recalculée en arrière-plan. */
 const FRESH_SECONDS = 30;
 /** Durée maximale de conservation en cache. */
 const MAX_AGE_SECONDS = 600;
+/** Images de partage : /opengraph-image, /templates/<slug>/opengraph-image (suffixe éventuel). */
+const OG_IMAGE = /(^|\/)(opengraph|twitter)-image(-[a-z0-9]+)?$/;
+const OG_MAX_AGE_SECONDS = 86_400;
 
 function isCacheable(request: Request, url: URL) {
   if (request.method !== "GET") return false;
@@ -46,8 +65,33 @@ async function renderAndStore(request: Request, env: unknown, ctx: Ctx, cache: C
   return res;
 }
 
+/** Images de partage : coûteuses à calculer, identiques pour tous. Cache d’un jour. */
+async function serveOgImage(request: Request, env: Env, ctx: Ctx, cache: Cache, url: URL) {
+  const keyUrl = new URL(url);
+  keyUrl.searchParams.set("__v", env.CF_VERSION_METADATA?.id ?? "dev");
+  const key = new Request(keyUrl.toString(), { method: "GET" });
+  const hit = await cache.match(key);
+  if (hit) {
+    const out = new Response(hit.body, hit);
+    out.headers.set("x-mys-cache", "HIT");
+    return out;
+  }
+  const res: Response = await handler.fetch(request, env, ctx);
+  if (res.status === 200 && (res.headers.get("content-type") ?? "").startsWith("image/")) {
+    const stored = new Response(res.clone().body, res);
+    stored.headers.set("cache-control", `public, max-age=${OG_MAX_AGE_SECONDS}`);
+    stored.headers.delete("set-cookie");
+    ctx.waitUntil(cache.put(key, stored));
+  }
+  const out = new Response(res.body, res);
+  out.headers.set("x-mys-cache", "MISS");
+  return out;
+}
+
+type Env = RateLimitEnv & { APP_URL?: string; CF_VERSION_METADATA?: { id: string } };
+
 export default {
-  async fetch(request: Request, env: { APP_URL?: string; CF_VERSION_METADATA?: { id: string } }, ctx: Ctx) {
+  async fetch(request: Request, env: Env, ctx: Ctx) {
     const url = new URL(request.url);
     if (env.APP_URL && url.hostname.endsWith(".workers.dev")) {
       const target = new URL(env.APP_URL);
@@ -56,7 +100,11 @@ export default {
       }
     }
 
+    const limited = await checkRateLimit(request, url.pathname, env);
+    if (limited) return limited;
+
     const cache = (globalThis as unknown as { caches?: { default?: Cache } }).caches?.default;
+    if (cache && request.method === "GET" && OG_IMAGE.test(url.pathname)) return serveOgImage(request, env, ctx, cache, url);
     if (!cache || !isCacheable(request, url)) return handler.fetch(request, env, ctx);
 
     // La version du déploiement fait partie de la clé : une page en cache ne référence

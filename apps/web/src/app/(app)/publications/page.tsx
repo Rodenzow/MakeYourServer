@@ -18,7 +18,7 @@ export default async function MyPublications() {
 
   return (
     <>
-      <PageHeader eyebrow="Communauté" title="Mes publications">
+      <PageHeader eyebrow="Communauté" title="Mes publications" help={{ href: "/aide#ce-qui-est-publie" }}>
         Partagez vos projets et sauvegardes avec tout le monde. Chaque proposition est relue par l’équipe avant d’apparaître dans la bibliothèque.
       </PageHeader>
 

@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { THEMES, allChannels, prepareForPublication, slugify, validateSpec, type ServerSpec } from "@mys/core";
 import { detectFeatures } from "@mys/core/templates";
-import { and, audit, count, desc, eq, getDb, inArray, isNull, templateReports, templates } from "@mys/db";
+import { and, audit, count, desc, eq, getDb, inArray, isNull, projects, templateReports, templates } from "@mys/db";
 import { HttpError } from "./api";
 import type { CurrentUser } from "./session";
 
@@ -70,6 +70,17 @@ export async function submitPublication(
     );
   }
 
+  // Remix : le projet vient d’un template publié d’un autre auteur (ou officiel) → attribution.
+  let basedOnTemplateId: string | null = null;
+  if (source.projectId) {
+    const [origin] = await db
+      .select({ id: templates.id, official: templates.official, authorUserId: templates.authorUserId })
+      .from(projects)
+      .innerJoin(templates, eq(templates.id, projects.sourceTemplateId))
+      .where(and(eq(projects.id, source.projectId), eq(templates.status, "published")));
+    if (origin && (origin.official || origin.authorUserId !== user.id)) basedOnTemplateId = origin.id;
+  }
+
   const [t] = await db
     .insert(templates)
     .values({
@@ -89,6 +100,7 @@ export async function submitPublication(
       showAuthor: body.showAuthor,
       sourceProjectId: source.projectId ?? null,
       sourceBackupId: source.backupId ?? null,
+      basedOnTemplateId,
       submittedAt: new Date(),
     })
     .returning({ id: templates.id });
@@ -98,7 +110,7 @@ export async function submitPublication(
     action: "template.submit",
     targetType: "template",
     targetId: t!.id,
-    metadata: { source: source.projectId ? "project" : "backup" },
+    metadata: { source: source.projectId ? "project" : "backup", ...(basedOnTemplateId ? { basedOnTemplateId } : {}) },
   });
   return t!;
 }
@@ -135,7 +147,7 @@ export async function withdrawPublication(userId: string, id: string) {
   const [t] = await db.select().from(templates).where(and(eq(templates.id, id), eq(templates.authorUserId, userId), eq(templates.official, false)));
   if (!t) throw new HttpError(404, "Publication introuvable.");
   if (t.status === "published" || t.publishedAt) {
-    await db.update(templates).set({ status: "archived", updatedAt: new Date() }).where(eq(templates.id, id));
+    await db.update(templates).set({ status: "archived", featured: false, updatedAt: new Date() }).where(eq(templates.id, id));
   } else {
     await db.delete(templates).where(eq(templates.id, id));
   }

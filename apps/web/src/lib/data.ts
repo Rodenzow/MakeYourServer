@@ -19,8 +19,9 @@ import {
   users,
   type schema,
 } from "@mys/db";
-import { getEntitlement } from "@mys/engine";
+import { accessibleProjectsCondition, getEntitlement } from "@mys/engine";
 import { HttpError } from "./api";
+import { RATING_PRIOR_MEAN, RATING_PRIOR_WEIGHT } from "./community-rules";
 
 export type TemplateRow = typeof schema.templates.$inferSelect;
 export type ProjectRow = typeof schema.projects.$inferSelect;
@@ -34,7 +35,11 @@ export interface TemplateQuery {
   features?: string[];
   /** official : templates officiels · community : publiés par les membres */
   source?: "official" | "community";
-  sort?: "popular" | "recent" | "views" | "name";
+  sort?: "popular" | "recent" | "views" | "name" | "rating";
+  /** Uniquement les templates mis en avant par l’équipe. */
+  featured?: boolean;
+  /** Templates communautaires d’un créateur (seulement ceux où il a accepté d’afficher son pseudo). */
+  authorId?: string;
 }
 
 /** Recherche dans les templates PUBLIÉS uniquement (jamais les projets ni les sauvegardes). */
@@ -48,6 +53,9 @@ export async function searchTemplates(query: TemplateQuery) {
   if (query.size) conds.push(eq(templates.size, query.size));
   for (const f of query.features ?? []) conds.push(sql`${templates.features} ? ${f}`);
   if (query.source) conds.push(eq(templates.official, query.source === "official"));
+  if (query.featured) conds.push(eq(templates.featured, true));
+  if (query.authorId) conds.push(eq(templates.authorUserId, query.authorId), eq(templates.official, false), eq(templates.showAuthor, true));
+  const popularity = sql`${templates.popularity} + ${templates.installCount} * 2 + ${templates.viewCount} / 20`;
   const order =
     query.sort === "recent"
       ? [desc(templates.publishedAt)]
@@ -55,7 +63,10 @@ export async function searchTemplates(query: TemplateQuery) {
         ? [asc(templates.name)]
         : query.sort === "views"
           ? [desc(templates.viewCount)]
-          : [desc(sql`${templates.popularity} + ${templates.installCount} * 2 + ${templates.viewCount} / 20`)];
+          : query.sort === "rating"
+            ? // Moyenne bayésienne : quelques avis isolés ne suffisent pas à passer devant un template très bien noté par beaucoup.
+              [desc(sql`(${templates.ratingSum} + ${RATING_PRIOR_WEIGHT * RATING_PRIOR_MEAN}::float) / (${templates.ratingCount} + ${RATING_PRIOR_WEIGHT})`), desc(templates.ratingCount), desc(popularity)]
+            : [desc(popularity)];
   // Les cartes n’ont pas besoin du contenu des messages ni de l’AutoMod : on ne
   // transfère qu’une version allégée de la spécification (bien plus rapide).
   const { spec: _spec, ...columns } = getTableColumns(templates);
@@ -64,7 +75,7 @@ export async function searchTemplates(query: TemplateQuery) {
       t: columns,
       spec: sql<CardSpec>`${templates.spec} - 'messages' - 'automod' - 'serverGuide' - 'welcomeScreen' - 'features'`,
       messageCount: sql<number>`jsonb_array_length(coalesce(${templates.spec}->'messages', '[]'::jsonb))`,
-      author: { username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar },
+      author: { id: users.id, username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar },
     })
     .from(templates)
     .leftJoin(users, eq(users.id, templates.authorUserId))
@@ -76,18 +87,21 @@ export async function searchTemplates(query: TemplateQuery) {
 /** Spécification allégée utilisée par les cartes de la bibliothèque. */
 type CardSpec = Pick<ServerSpec, "meta" | "roles" | "categories" | "uncategorized" | "onboarding">;
 
-type AuthorRow = { username: string; globalName: string | null; discordId: string; avatar: string | null } | null;
+type AuthorRow = { id: string; username: string; globalName: string | null; discordId: string; avatar: string | null } | null;
+
+/** Avatar Discord d’un membre (null : avatar par défaut). */
+export const discordAvatarUrl = (discordId: string, avatar: string | null, size = 64) => (avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=${size}` : null);
 
 /** Auteur affiché publiquement : uniquement pour un template communautaire dont l’auteur l’a accepté. */
 export function publicAuthor(t: Pick<TemplateRow, "official" | "showAuthor">, a: AuthorRow) {
   if (t.official || !t.showAuthor || !a) return null;
-  return { name: a.globalName ?? a.username, avatarUrl: a.avatar ? `https://cdn.discordapp.com/avatars/${a.discordId}/${a.avatar}.png?size=64` : null };
+  return { id: a.id, name: a.globalName ?? a.username, avatarUrl: discordAvatarUrl(a.discordId, a.avatar) };
 }
 
 export async function getTemplateAuthor(t: TemplateRow) {
   if (t.official || !t.showAuthor || !t.authorUserId) return null;
   const [a] = await getDb()
-    .select({ username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar })
+    .select({ id: users.id, username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar })
     .from(users)
     .where(eq(users.id, t.authorUserId));
   return publicAuthor(t, a ?? null);
@@ -107,6 +121,8 @@ export function templateCard(t: Omit<TemplateRow, "spec"> & { spec: CardSpec }, 
     popularity: t.popularity + t.installCount * 2,
     installCount: t.installCount,
     viewCount: t.viewCount,
+    featured: t.featured,
+    rating: t.ratingCount > 0 ? { average: t.ratingSum / t.ratingCount, count: t.ratingCount } : null,
     author: publicAuthor(t, author),
     stats: { channels, roles: t.spec.roles.length, messages: messageCount },
     accentColor: t.spec.meta.accentColor ?? 0x83a8f3,
@@ -134,21 +150,58 @@ export async function listSavedTemplateIds(userId: string) {
 
 /* --------------------------------- Projets --------------------------------- */
 
+/**
+ * Projets du membre ET projets partagés avec lui (co-gestion). `role` indique
+ * « owner » ou « editor » ; `owner` est renseigné pour les projets partagés.
+ */
 export async function listProjects(userId: string) {
-  const rows = await getDb().select().from(projects).where(eq(projects.userId, userId)).orderBy(desc(projects.updatedAt));
-  return rows.map((p) => ({
-    id: p.id,
-    name: p.name,
-    status: p.status,
-    sourceType: p.sourceType,
-    updatedAt: p.updatedAt,
-    stats: specStats(p.spec),
-    theme: p.spec.meta.theme,
-    accentColor: p.spec.meta.accentColor ?? 0x83a8f3,
-  }));
+  const rows = await getDb()
+    .select({
+      p: {
+        id: projects.id,
+        userId: projects.userId,
+        name: projects.name,
+        status: projects.status,
+        sourceType: projects.sourceType,
+        sourceTemplateId: projects.sourceTemplateId,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      },
+      spec: sql<ServerSpec>`${projects.spec} - 'messages' - 'automod' - 'serverGuide' - 'welcomeScreen'`,
+      messageCount: sql<number>`jsonb_array_length(coalesce(${projects.spec}->'messages', '[]'::jsonb))`,
+      owner: { username: users.username, globalName: users.globalName },
+    })
+    .from(projects)
+    .innerJoin(users, eq(users.id, projects.userId))
+    .where(accessibleProjectsCondition(userId))
+    .orderBy(desc(projects.updatedAt));
+  return rows.map(({ p, spec, messageCount, owner }) => {
+    const shared = p.userId !== userId;
+    return {
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      sourceType: p.sourceType,
+      sourceTemplateId: p.sourceTemplateId,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      role: (shared ? "editor" : "owner") as "owner" | "editor",
+      owner: shared ? { name: owner.globalName ?? owner.username } : null,
+      stats: { ...specStats({ ...spec, messages: [], automod: [] } as ServerSpec), messages: Number(messageCount) },
+      theme: spec.meta.theme,
+      accentColor: spec.meta.accentColor ?? 0x83a8f3,
+    };
+  });
+}
+export type ProjectListItem = Awaited<ReturnType<typeof listProjects>>[number];
+
+/** Nombre de projets dont l’utilisateur est propriétaire (seuls ceux-ci comptent dans son offre). */
+export async function countOwnedProjects(userId: string) {
+  const [{ n }] = (await getDb().select({ n: sql<number>`count(*)::int` }).from(projects).where(eq(projects.userId, userId))) as [{ n: number }];
+  return n;
 }
 
-/** Un projet n’est accessible qu’à son propriétaire. */
+/** Projet dont l’utilisateur est PROPRIÉTAIRE (pour la co-gestion, voir getAccessibleProject dans project-access.ts). */
 export async function getOwnedProject(userId: string, projectId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(projectId)) return null;
   const [p] = await getDb()
@@ -160,7 +213,7 @@ export async function getOwnedProject(userId: string, projectId: string) {
 
 export async function assertProjectQuota(userId: string) {
   const ent = await getEntitlement(userId);
-  const [{ n }] = (await getDb().select({ n: sql<number>`count(*)::int` }).from(projects).where(eq(projects.userId, userId))) as [{ n: number }];
+  const n = await countOwnedProjects(userId);
   if (n >= ent.quotas.maxProjects) {
     throw new HttpError(402, `Votre offre permet ${ent.quotas.maxProjects} projets. Supprimez un projet ou passez au Premium.`, "quota");
   }
@@ -182,18 +235,20 @@ export async function createProject(userId: string, input: { name: string; spec:
 
 /**
  * Enregistrement d’un projet avec contrôle de version optimiste : si le projet a été
- * modifié ailleurs entre-temps (autre onglet, IA), l’enregistrement est refusé.
+ * modifié ailleurs entre-temps (autre onglet, IA, co-gestionnaire), l’enregistrement
+ * est refusé. Accessible au propriétaire et aux co-gestionnaires.
  */
-export async function saveProject(userId: string, projectId: string, input: { spec: unknown; revision: number; note?: string; author?: "user" | "ai" }) {
+export async function saveProject(userId: string, projectId: string, input: { spec: unknown; revision: number; note?: string; author?: "user" | "ai" | "restore" }) {
   const parsed = ServerSpecSchema.safeParse(input.spec);
   if (!parsed.success) throw new HttpError(400, `Projet invalide : ${parsed.error.issues[0]?.path.join(".")} — ${parsed.error.issues[0]?.message}`, "validation");
   const spec = parsed.data;
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new HttpError(404, "Projet introuvable.");
   const db = getDb();
   return db.transaction(async (tx) => {
     const [current] = await tx
       .select()
       .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+      .where(and(eq(projects.id, projectId), accessibleProjectsCondition(userId)))
       .for("update");
     if (!current) throw new HttpError(404, "Projet introuvable.");
     if (current.revision !== input.revision) throw new HttpError(409, "Ce projet a été modifié ailleurs. Rechargez la page pour récupérer la dernière version.", "conflict");
@@ -204,22 +259,70 @@ export async function saveProject(userId: string, projectId: string, input: { sp
       .set({ spec, name: spec.meta.name, revision, status: validation.ok ? "ready" : "draft", updatedAt: new Date() })
       .where(eq(projects.id, projectId))
       .returning();
-    // Historique : on garde une révision par minute au plus, et toujours celles de l’IA.
+    // Historique : une révision par minute au plus pour les enregistrements automatiques ;
+    // toujours celles de l’IA, des restaurations et des enregistrements annotés.
     const [last] = await tx.select().from(projectRevisions).where(eq(projectRevisions.projectId, projectId)).orderBy(desc(projectRevisions.revision)).limit(1);
-    if (!last || input.author === "ai" || Date.now() - last.createdAt.getTime() > 60_000) {
+    if (!last || (input.author ?? "user") !== "user" || input.note || Date.now() - last.createdAt.getTime() > 60_000) {
       await tx.insert(projectRevisions).values({ projectId, revision, spec, author: input.author ?? "user", note: input.note ?? null });
     }
     return { project: p!, validation };
   });
 }
 
+/** Historique d’un projet, avec un aperçu chiffré de chaque version (calculé en base). */
 export async function projectRevisionsList(projectId: string) {
-  return getDb()
-    .select({ id: projectRevisions.id, revision: projectRevisions.revision, author: projectRevisions.author, note: projectRevisions.note, createdAt: projectRevisions.createdAt })
+  const rows = await getDb()
+    .select({
+      id: projectRevisions.id,
+      revision: projectRevisions.revision,
+      author: projectRevisions.author,
+      note: projectRevisions.note,
+      createdAt: projectRevisions.createdAt,
+      roles: sql<number>`jsonb_array_length(coalesce(${projectRevisions.spec}->'roles', '[]'::jsonb))`,
+      categories: sql<number>`jsonb_array_length(coalesce(${projectRevisions.spec}->'categories', '[]'::jsonb))`,
+      channels: sql<number>`jsonb_array_length(coalesce(${projectRevisions.spec}->'uncategorized', '[]'::jsonb)) + coalesce((select sum(jsonb_array_length(coalesce(c->'channels', '[]'::jsonb))) from jsonb_array_elements(coalesce(${projectRevisions.spec}->'categories', '[]'::jsonb)) c), 0)`,
+      messages: sql<number>`jsonb_array_length(coalesce(${projectRevisions.spec}->'messages', '[]'::jsonb))`,
+    })
     .from(projectRevisions)
     .where(eq(projectRevisions.projectId, projectId))
-    .orderBy(desc(projectRevisions.revision))
+    .orderBy(desc(projectRevisions.revision), desc(projectRevisions.createdAt))
     .limit(50);
+  return rows.map((r) => ({
+    id: r.id,
+    revision: r.revision,
+    author: r.author as "user" | "ai" | "restore",
+    note: r.note,
+    createdAt: r.createdAt,
+    stats: { roles: Number(r.roles), categories: Number(r.categories), channels: Number(r.channels), messages: Number(r.messages) },
+  }));
+}
+export type RevisionItem = Awaited<ReturnType<typeof projectRevisionsList>>[number];
+
+/** Une révision d’un projet, désignée par son identifiant (uuid) ou son numéro. */
+export async function getProjectRevision(projectId: string, ref: string) {
+  const cond = /^[0-9a-f-]{36}$/i.test(ref)
+    ? eq(projectRevisions.id, ref)
+    : /^\d{1,9}$/.test(ref)
+      ? eq(projectRevisions.revision, Number(ref))
+      : null;
+  if (!cond) return null;
+  const [r] = await getDb()
+    .select()
+    .from(projectRevisions)
+    .where(and(eq(projectRevisions.projectId, projectId), cond))
+    .orderBy(desc(projectRevisions.createdAt))
+    .limit(1);
+  return r ?? null;
+}
+
+/**
+ * Restaure une version : crée une NOUVELLE révision identique à l’ancienne (rien
+ * n’est perdu). Même contrôle optimiste que l’enregistrement.
+ */
+export async function restoreProjectRevision(userId: string, projectId: string, ref: string, expectedRevision: number) {
+  const r = await getProjectRevision(projectId, ref);
+  if (!r) throw new HttpError(404, "Cette version est introuvable.");
+  return saveProject(userId, projectId, { spec: r.spec, revision: expectedRevision, note: `Restauration de la version ${r.revision}`, author: "restore" });
 }
 
 export async function listAiGenerations(userId: string, limit = 30) {

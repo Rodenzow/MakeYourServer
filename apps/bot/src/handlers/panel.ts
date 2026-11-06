@@ -10,6 +10,7 @@ export function panelPayload() {
       "**Installer** — `/mys installer` : choisissez un projet, vérifiez l’analyse, lancez.",
       "**Sauvegarder** — `/mys sauvegarder` : capture la configuration actuelle.",
       "**Restaurer** — `/mys restaurer` : remet en place une sauvegarde, sans rien supprimer.",
+      "**Santé** — `/mys sante` : analyse gratuite de la sécurité et de l’organisation du serveur.",
       "**Suivre** — `/mys statut` · **Arrêter** — `/mys annuler`",
     ].join("\n"),
   );

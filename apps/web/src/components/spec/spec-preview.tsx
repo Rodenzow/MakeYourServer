@@ -80,7 +80,7 @@ export function SpecPreview({ spec, height = 560 }: { spec: ServerSpec; height?:
         </div>
       </div>
       <div className="border-t border-black/30 bg-night px-4 py-3">
-        <p className="text-[11px] leading-snug text-light/55">{SIMULATION_SCOPE_NOTE}</p>
+        <p className="text-[11px] leading-snug text-light/70">{SIMULATION_SCOPE_NOTE}</p>
       </div>
     </div>
   );

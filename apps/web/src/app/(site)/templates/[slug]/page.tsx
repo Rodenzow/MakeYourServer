@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Term } from "@/components/help/term";
 import Link from "next/link";
 import { SIZE_LABELS, THEME_LABELS, allChannels, specStats, type ServerSpec } from "@mys/core";
 import { FEATURE_TAGS } from "@mys/core/templates";
@@ -12,20 +13,43 @@ import { UseTemplateButton } from "@/components/templates/use-template-button";
 import { StickyCta } from "@/components/templates/sticky-cta";
 import { AnimatedNumber, Reveal } from "@/components/motion";
 import { Badge } from "@/components/ui";
-import { ChannelIcon, IconCheck, IconHand } from "@/components/icons";
+import { ChannelIcon, IconCheck, IconHand, IconSparkle } from "@/components/icons";
+import { Reviews } from "@/components/templates/reviews";
+import { Stars } from "@/components/templates/stars";
+import { getTemplateLineage } from "@/lib/community";
+import { formatRating } from "@/lib/community-rules";
+import { getReviewDistribution, getUserReview, listReviews, ratingSummary, reviewEligibility } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const t = await getPublishedTemplate((await params).slug);
-  return { title: t ? `Template ${t.name}` : "Template introuvable", description: t?.tagline };
+  if (!t) return { title: "Template introuvable" };
+  const title = `Template ${t.name}`;
+  // L’image de partage vient de opengraph-image.tsx (même dossier), ajoutée automatiquement.
+  return {
+    title,
+    description: t.tagline,
+    alternates: { canonical: `/templates/${t.slug}` },
+    openGraph: { type: "website", siteName: "Make Your Server", locale: "fr_FR", title, description: t.tagline, url: `/templates/${t.slug}` },
+    twitter: { card: "summary_large_image", title, description: t.tagline },
+  };
 }
 
 export default async function TemplatePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const t = await getPublishedTemplate(slug);
   if (!t) notFound();
-  const [user, author] = await Promise.all([getCurrentUser(), getTemplateAuthor(t)]);
+  const user = await getCurrentUser();
+  const [author, lineage, distribution, firstPage, mine, eligibility] = await Promise.all([
+    getTemplateAuthor(t),
+    getTemplateLineage(t),
+    getReviewDistribution(t.id),
+    listReviews(t.id, 1),
+    user ? getUserReview(user.id, t.id) : Promise.resolve(null),
+    reviewEligibility(user?.id ?? null, t),
+  ]);
+  const rating = ratingSummary(t);
   const spec = t.spec as ServerSpec;
   const s = specStats(spec);
   const v = themeVisual(t.theme);
@@ -60,10 +84,25 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
             <Badge tone="night">{THEME_LABELS[t.theme as keyof typeof THEME_LABELS] ?? t.theme}</Badge>
             <Badge>{SIZE_LABELS[t.size as keyof typeof SIZE_LABELS]}</Badge>
             {t.official ? <Badge tone="blue">Template officiel</Badge> : <Badge tone="blue">Proposé par la communauté, vérifié</Badge>}
+            {t.featured && (
+              <Badge tone="warning">
+                <IconSparkle size={12} /> Sélection de l’équipe
+              </Badge>
+            )}
           </div>
           <h1 className="mt-3 text-4xl font-extrabold md:text-5xl">{t.name}</h1>
           <p className="mt-3 text-lg text-ink">{t.tagline}</p>
           <p className="mt-3 max-w-2xl text-muted">{t.description}</p>
+          {lineage.basedOn && (
+            <p className="mt-3 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink">
+              <IconSparkle size={14} className="text-peri" />
+              Inspiré de{" "}
+              <Link href={`/templates/${lineage.basedOn.slug}`} className="link font-semibold">
+                « {lineage.basedOn.name} »
+              </Link>
+              {lineage.basedOn.official ? <span className="text-muted">(template officiel)</span> : lineage.basedOn.author ? <span className="text-muted">de {lineage.basedOn.author.name}</span> : null}
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
             {t.official ? (
               <span className="inline-flex items-center gap-2">
@@ -78,8 +117,24 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
                 ) : (
                   <span className="grid size-6 place-items-center rounded-full bg-mist text-xs">?</span>
                 )}
-                Par <strong className="text-fg">{author?.name ?? "un membre de la communauté"}</strong>
+                Par{" "}
+                {author ? (
+                  <Link href={`/createurs/${author.id}`} className="link font-semibold">
+                    {author.name}
+                  </Link>
+                ) : (
+                  <strong className="text-fg">un membre de la communauté</strong>
+                )}
               </span>
+            )}
+            {rating.average !== null && (
+              <a href="#avis" className="inline-flex items-center gap-1.5 rounded-md hover:text-fg">
+                <Stars value={rating.average} size={14} />
+                <strong className="text-fg">{formatRating(rating.average)}</strong>
+                <span>
+                  ({rating.count} avis)
+                </span>
+              </a>
             )}
             <span>
               <strong className="text-fg">{t.viewCount.toLocaleString("fr-FR")}</strong> vue{t.viewCount > 1 ? "s" : ""}
@@ -128,6 +183,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
       {spec.onboarding?.enabled && spec.onboarding.prompts.length > 0 && (
         <Reveal className="mt-12">
           <h2 className="text-2xl font-bold">Ce que verront vos nouveaux membres</h2>
+          <p className="mt-1 text-sm text-muted">Il s’agit de l’<Term id="onboarding">onboarding</Term> de Discord.</p>
           <p className="mt-1 mb-5 text-muted">À leur arrivée, Discord leur pose ces questions : leurs réponses leur donnent les bons rôles et ouvrent les salons qui les intéressent.</p>
           <ol className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {spec.onboarding.prompts.map((p, i) => (
@@ -169,7 +225,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           </div>
         </section>
         <section>
-          <h2 className="text-2xl font-bold">Rôles et hiérarchie</h2>
+          <h2 className="text-2xl font-bold">Rôles et <Term id="hierarchie">hiérarchie</Term></h2>
           <div className="mt-4">
             <RolesOverview spec={spec} />
           </div>
@@ -200,7 +256,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="panel p-4 text-sm">
-            <p className="font-semibold">AutoMod (natif Discord)</p>
+            <p className="font-semibold"><Term id="automod">AutoMod</Term> (natif Discord)</p>
             <ul className="mt-2 space-y-1 text-muted">
               {spec.automod.map((a) => (
                 <li key={a.id}>• {a.name}</li>
@@ -220,7 +276,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           <div className="panel p-4 text-sm">
             <p className="font-semibold">Assuré par notre bot</p>
             <ul className="mt-2 space-y-1 text-muted">
-              {spec.features.tickets?.enabled && <li>• Tickets privés vers l’équipe</li>}
+              {spec.features.tickets?.enabled && <li>• <Term id="ticket">Tickets</Term> privés vers l’équipe</li>}
               {spec.features.suggestions?.enabled && <li>• Suggestions avec votes</li>}
               {spec.messages.some((m) => m.buttons.some((b) => b.action === "role-toggle")) && <li>• Rôles à choisir par boutons</li>}
               {spec.features.joinLogs?.enabled && <li>• Logs d’arrivées et de départs</li>}
@@ -231,11 +287,40 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           <div className="mt-4 flex gap-3 rounded-xl border-2 border-dashed border-line bg-surface p-4 text-sm">
             <IconHand className="mt-0.5 shrink-0 text-blue-strong" />
             <p>
-              <strong>Guide du serveur :</strong> Discord ne permet pas de le configurer via son API publique. Son contenu est prêt et un assistant vous guidera pour le recopier après l’installation ({allChannels(spec).length} salons référencés).
+              <strong><Term id="guide-serveur">Guide du serveur</Term> :</strong> Discord ne permet pas de le configurer via son API publique. Son contenu est prêt et un assistant vous guidera pour le recopier après l’installation ({allChannels(spec).length} salons référencés).
             </p>
           </div>
         )}
       </section>
+
+      {lineage.remixes.length > 0 && (
+        <section className="mt-12" aria-labelledby="remix-titre">
+          <h2 id="remix-titre" className="flex items-center gap-2 text-xl font-bold">
+            <IconSparkle className="text-peri" /> Remixé {lineage.remixes.length} fois
+          </h2>
+          <p className="mt-1 text-sm text-muted">Des membres sont partis de ce template pour créer et publier leur propre version.</p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {lineage.remixes.map((r) => (
+              <li key={r.slug}>
+                <Link href={`/templates/${r.slug}`} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm transition-colors hover:border-edge">
+                  <span className="font-semibold text-fg">{r.name}</span>
+                  {r.author && <span className="text-muted">par {r.author.name}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Reviews
+        slug={t.slug}
+        summary={rating}
+        distribution={distribution}
+        initial={{ reviews: firstPage.reviews, hasMore: firstPage.hasMore }}
+        mine={mine}
+        eligibility={eligibility}
+        currentUserId={user?.id ?? null}
+      />
 
       <div className="mt-12 flex flex-col items-center gap-4">
         <UseTemplateButton slug={t.slug} loggedIn={!!user} label="Utiliser ce template" />

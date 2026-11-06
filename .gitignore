@@ -13,3 +13,4 @@ apps/web/AGENTS.md
 .open-next
 .wrangler
 .dev.vars
+.claude/worktrees/

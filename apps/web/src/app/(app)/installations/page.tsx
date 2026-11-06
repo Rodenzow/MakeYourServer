@@ -12,7 +12,7 @@ export default async function InstallationsPage() {
   const list = await listInstallations(user.id, 100);
   return (
     <>
-      <PageHeader eyebrow="Historique" title="Installations et restaurations">
+      <PageHeader eyebrow="Historique" title="Installations et restaurations" help={{ href: "/aide#installation-partielle" }}>
         Chaque installation conserve le détail de ses étapes, leurs résultats et la sauvegarde de sécurité prise avant les modifications.
       </PageHeader>
       {list.length === 0 ? (

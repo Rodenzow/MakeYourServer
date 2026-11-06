@@ -3,6 +3,7 @@ import { botGuilds, closeDb, eq, getDb, logError } from "@mys/db";
 import { DiscordRestGateway, expireMissingDiscordEntitlements, startWorker, syncDiscordEntitlement } from "@mys/engine";
 import { config } from "./config";
 import { handleBackup, handleBackupList } from "./handlers/backup";
+import { handleHealth } from "./handlers/audit";
 import {
   handleRoleToggle,
   handleRulesAccept,
@@ -72,6 +73,8 @@ function bind() {
       gateway,
       instanceId: `bot-${c.user.id.slice(-4)}-${process.pid}`,
       onInstallationProgress: (id) => updateFollowup(client, id),
+      // Messages programmés (Premium) : vérifiés toutes les 30 s.
+      scheduledMessagesMs: 30_000,
       heartbeat: () => ({ guildCount: client.guilds.cache.size, gatewayStatus: client.ws.status === 0 ? "connecté" : `statut ${client.ws.status}` }),
     });
   });
@@ -123,6 +126,8 @@ async function route(i: Interaction) {
           return await handleBackupList(i);
         case "restaurer":
           return await handleRestore(i, gateway);
+        case "sante":
+          return await handleHealth(i, gateway);
         case "statut":
           return await handleStatus(i);
         case "annuler":

@@ -12,7 +12,8 @@ export const GET = withPublic(async (req) => {
     size: p.get("taille") || undefined,
     features: p.get("fonctionnalites")?.split(",").filter(Boolean).slice(0, 8),
     source: source === "official" || source === "community" ? source : undefined,
-    sort: sort === "recent" || sort === "name" || sort === "views" ? sort : "popular",
+    featured: p.get("selection") === "1" || undefined,
+    sort: sort === "recent" || sort === "name" || sort === "views" || sort === "rating" ? sort : "popular",
   });
   return json({ templates: results });
 });

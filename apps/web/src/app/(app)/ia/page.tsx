@@ -34,7 +34,20 @@ export default async function AiPage() {
         Décrivez votre besoin : l’IA conçoit l’organisation, les rôles, les permissions, les messages et le parcours d’arrivée. Le résultat passe par les mêmes contrôles et la même prévisualisation que les templates, puis devient un projet modifiable.
       </PageHeader>
 
-      {status.premium ? (
+      {!status.premium && status.trialRemaining > 0 ? (
+        <>
+          <div className="halo relative overflow-hidden rounded-[var(--radius-block)] border border-edge bg-surface p-5">
+            <p className="eyebrow">Essai offert</p>
+            <p className="mt-1 font-display text-xl font-bold">
+              {status.trialRemaining > 1 ? `${status.trialRemaining} conceptions offertes` : "Une conception offerte"} pour découvrir l’IA, sans carte bancaire.
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              Décrivez votre serveur : vous obtenez un projet complet, que vous pouvez modifier et installer gratuitement. Pour aller plus loin (plus de conceptions, retouches par IA), passez au Premium.
+            </p>
+          </div>
+          <AiCreateForm simulated={status.simulated} disabledReason={disabledReason} />
+        </>
+      ) : status.premium ? (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat label="Conceptions ce mois-ci" value={`${status.generations.used} / ${status.generations.limit}`} />
@@ -47,6 +60,7 @@ export default async function AiPage() {
         <div className="brick blueprint grid gap-6 p-6 md:grid-cols-[1.4fr_1fr] md:p-8">
           <div>
             <h2 className="text-2xl font-bold">Un serveur conçu pour votre usage réel</h2>
+            {status.trialRemaining === 0 && !status.premium && <p className="mt-1 text-sm text-muted">Vous avez déjà utilisé votre conception offerte.</p>}
             <ul className="mt-4 space-y-2 text-sm text-ink">
               <li>• Organisation, salons et descriptions adaptés à votre public, votre taille et votre ton.</li>
               <li>• Rôles et permissions cohérents, vérifiés par notre moteur avant toute installation.</li>

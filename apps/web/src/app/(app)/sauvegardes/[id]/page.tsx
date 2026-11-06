@@ -38,6 +38,7 @@ export default async function BackupPage({ params, searchParams }: { params: Pro
   return (
     <>
       <PageHeader
+        help={{ href: "/aide#restauration-identique" }}
         eyebrow={`${b.guildName} · version ${b.version}`}
         title={b.label ?? `Sauvegarde n°${b.version}`}
         actions={
