@@ -12,7 +12,8 @@ import {
 } from "@mys/core";
 import { aiGenerations, and, audit, eq, getDb, logError } from "@mys/db";
 import { HttpError } from "../api";
-import { getOwnedProject, saveProject } from "../data";
+import { saveProject } from "../data";
+import { getAccessibleProject } from "../project-access";
 import { env } from "../env";
 import { diffSpecs, type SpecDiff } from "./diff";
 import { CREATE_SYSTEM, EDIT_SYSTEM, createUserPrompt, editUserPrompt, repairPrompt } from "./prompts";
@@ -174,7 +175,8 @@ export function previewChanges(spec: ServerSpec, changeSet: ChangeSet, constrain
 }
 
 export async function runEdit(userId: string, req: EditRequest) {
-  const project = await getOwnedProject(userId, req.projectId);
+  // Propriétaire ou co-gestionnaire ; l’usage IA est compté pour la personne qui l’utilise.
+  const project = (await getAccessibleProject(userId, req.projectId))?.project;
   if (!project) throw new HttpError(404, "Projet introuvable.");
   const { settings } = await assertAiAllowed(userId, "edit");
   const constraints: PatchConstraints = { lockRoles: req.lockRoles, noRemovals: req.noRemovals };
@@ -230,7 +232,7 @@ export async function applyEdit(userId: string, generationId: string, accepted: 
   const gen = await getOwnedGeneration(userId, generationId);
   if (!gen || gen.kind !== "edit" || !gen.projectId || !gen.changeSet) throw new HttpError(404, "Proposition introuvable.");
   if (gen.status !== "succeeded") throw new HttpError(409, "Cette proposition a déjà été traitée.");
-  const project = await getOwnedProject(userId, gen.projectId);
+  const project = (await getAccessibleProject(userId, gen.projectId))?.project;
   if (!project) throw new HttpError(404, "Projet introuvable.");
   const indexes = [...new Set(accepted)].filter((i) => Number.isInteger(i) && i >= 0 && i < gen.changeSet!.changes.length);
   if (!indexes.length) throw new HttpError(400, "Sélectionnez au moins une modification à appliquer.");

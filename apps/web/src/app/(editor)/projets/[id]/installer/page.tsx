@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { validateSpec } from "@mys/core";
 import { InstallWizard } from "@/components/install/install-wizard";
-import { getOwnedProject } from "@/lib/data";
+import { getAccessibleProject } from "@/lib/project-access";
 import { requireUser } from "@/lib/session";
 import { env } from "@/lib/env";
 
@@ -10,7 +10,8 @@ export const metadata = { title: "Installer le projet" };
 export default async function InstallPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/projets/${id}/installer`);
-  const project = await getOwnedProject(user.id, id);
+  // Propriétaire ou co-gestionnaire : les droits Discord sur le serveur choisi sont revérifiés par le bot.
+  const project = (await getAccessibleProject(user.id, id))?.project;
   if (!project) notFound();
   const v = validateSpec(project.spec);
   return (

@@ -10,3 +10,4 @@ export * from "./services/backups";
 export * from "./services/installs";
 export * from "./services/billing";
 export * from "./sandbox";
+export * from "./services/project-access";
