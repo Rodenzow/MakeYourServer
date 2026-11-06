@@ -11,6 +11,8 @@ export interface AiSettings {
   maxOutputTokens: number;
   /** Budget global mensuel de la plateforme (µ$). 0 = IA bloquée. */
   monthlyBudgetMicros: number;
+  /** Conceptions IA offertes une fois par compte gratuit, pour essayer (0 = aucun essai). */
+  trialGenerations: number;
 }
 
 export interface MaintenanceSettings {
@@ -28,6 +30,7 @@ export const SETTING_DEFAULTS = {
     outputMicrosPerMTok: 10_000_000,
     maxOutputTokens: 16000,
     monthlyBudgetMicros: 50_000_000,
+    trialGenerations: 1,
   } satisfies AiSettings,
   maintenance: { enabled: false, message: "Maintenance en cours, merci de réessayer dans quelques minutes.", blockInstalls: false } satisfies MaintenanceSettings,
 } as const;

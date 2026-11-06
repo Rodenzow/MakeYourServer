@@ -294,9 +294,15 @@ export default async function Home() {
                     </li>
                   ))}
                 </ul>
-                <ButtonLink href="/abonnement" variant="secondary" className="mt-8">
-                  Découvrir le Premium <IconArrowRight size={16} />
-                </ButtonLink>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <ButtonLink href="/ia">
+                    Essayer gratuitement <IconArrowRight size={16} />
+                  </ButtonLink>
+                  <ButtonLink href="/abonnement" variant="secondary">
+                    Découvrir le Premium
+                  </ButtonLink>
+                </div>
+                <p className="mt-3 text-xs text-muted">Une conception offerte à chaque compte, sans carte bancaire.</p>
               </div>
               <div className="relative h-[300px] rounded-2xl border border-line bg-surface/80 p-4 backdrop-blur">
                 <AiDesignDemo />

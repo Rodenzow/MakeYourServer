@@ -72,9 +72,10 @@ async function finishGeneration(
   kind: AiKind,
   settings: Awaited<ReturnType<typeof assertAiAllowed>>["settings"],
   out: { usage: AiUsage; model: string; ok: boolean; error?: string; resultSpec?: ServerSpec; changeSet?: ChangeSet },
+  trial = false,
 ) {
   const cost = SIMULATED() ? 0 : costMicros(settings, out.usage);
-  await recordUsage(userId, kind, out.usage, cost, out.ok);
+  await recordUsage(userId, kind, out.usage, cost, out.ok, trial);
   await getDb()
     .update(aiGenerations)
     .set({
@@ -98,7 +99,7 @@ async function finishGeneration(
 /* -------------------------------------------------------------------------- */
 
 export async function runCreation(userId: string, req: CreateRequest) {
-  const { settings } = await assertAiAllowed(userId, "create");
+  const { settings, trial } = await assertAiAllowed(userId, "create");
   const gen = await startGeneration(userId, "create", req.description, req as unknown as Record<string, unknown>, null, settings.model);
   try {
     const res = await proposeWithRepair<ServerSpec>(
@@ -127,7 +128,7 @@ export async function runCreation(userId: string, req: CreateRequest) {
     );
     const ok = !!res.value;
     const error = ok ? undefined : `La proposition de l’IA ne respectait pas les règles du moteur : ${res.errors.slice(0, 3).join(" ; ")}`;
-    await finishGeneration(gen.id, userId, "create", settings, { usage: res.usage, model: res.model, ok, error, resultSpec: res.value ?? undefined });
+    await finishGeneration(gen.id, userId, "create", settings, { usage: res.usage, model: res.model, ok, error, resultSpec: res.value ?? undefined }, trial);
     if (!ok) throw new HttpError(422, `${error} Aucun projet n’a été créé ; le quota n’est décompté que si l’IA a réellement été sollicitée.`, "ai_invalid");
     return { generationId: gen.id, spec: res.value!, validation: validateSpec(res.value!), simulated: SIMULATED() };
   } catch (e) {

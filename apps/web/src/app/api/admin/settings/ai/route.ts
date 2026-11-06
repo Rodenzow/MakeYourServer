@@ -9,6 +9,7 @@ const Body = z.object({
   outputMicrosPerMTok: z.number().int().min(0).max(1_000_000_000),
   maxOutputTokens: z.number().int().min(1000).max(200_000),
   monthlyBudgetMicros: z.number().int().min(0).max(1_000_000_000_000),
+  trialGenerations: z.number().int().min(0).max(5),
 });
 
 export const PUT = withAdmin(async (req, admin) => {

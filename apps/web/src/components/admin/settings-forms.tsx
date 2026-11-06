@@ -30,6 +30,7 @@ export interface AiSettingsValues {
   outputMicrosPerMTok: number;
   maxOutputTokens: number;
   monthlyBudgetMicros: number;
+  trialGenerations: number;
 }
 
 const toUsd = (m: number) => (m / 1_000_000).toString();
@@ -51,6 +52,7 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValues }) {
           outputMicrosPerMTok: fromUsd(v.output),
           maxOutputTokens: Math.max(1000, Math.floor(Number(v.maxOutputTokens) || 0)),
           monthlyBudgetMicros: fromUsd(v.budget),
+          trialGenerations: Math.max(0, Math.min(5, Math.floor(Number(v.trialGenerations) || 0))),
         });
       }}
     >
@@ -66,6 +68,10 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValues }) {
         <div>
           <label className="label" htmlFor="ai-max">Jetons de sortie maximum par requête</label>
           <input id="ai-max" type="number" min={1000} className="field" value={v.maxOutputTokens} onChange={(e) => setV({ ...v, maxOutputTokens: Number(e.target.value) })} />
+        </div>
+        <div>
+          <label className="label" htmlFor="ai-trial">Conceptions offertes à l’essai (comptes gratuits, une fois)</label>
+          <input id="ai-trial" type="number" min={0} max={5} className="field" value={v.trialGenerations} onChange={(e) => setV({ ...v, trialGenerations: Number(e.target.value) })} />
         </div>
         <div>
           <label className="label" htmlFor="ai-in">Prix d’entrée ($ US par million de jetons)</label>
