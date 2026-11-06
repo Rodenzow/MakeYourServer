@@ -5,12 +5,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { SIZE_LABELS, THEME_LABELS } from "@mys/core";
 import { FEATURE_TAGS } from "@mys/core/templates";
 import type { TemplateCard } from "@/lib/data";
-import { IconChevronDown, IconSearch } from "../icons";
+import { IconChevronDown, IconSearch, IconSparkle } from "../icons";
 import { cx } from "../ui";
 import { TemplateTile } from "./template-tile";
 import { themeVisual } from "./theme-visuals";
 
-const SORTS = { popular: "Populaires", views: "Les plus vus", recent: "Récents", name: "A → Z" } as const;
+const SORTS = { popular: "Populaires", rating: "Mieux notés", views: "Les plus vus", recent: "Récents", name: "A → Z" } as const;
 const SOURCES = { "": "Tous", official: "Officiels", community: "Communauté" } as const;
 
 export function TemplateBrowser({ initial }: { initial: TemplateCard[] }) {
@@ -59,6 +59,8 @@ export function TemplateBrowser({ initial }: { initial: TemplateCard[] }) {
 
   const toggleFeature = (f: string) => setFeatures((xs) => (xs.includes(f) ? xs.filter((x) => x !== f) : [...xs, f]));
   const activeCount = useMemo(() => (theme ? 1 : 0) + (size ? 1 : 0) + (source ? 1 : 0) + features.length + (q ? 1 : 0), [theme, size, source, features, q]);
+  // « Sélection de l’équipe » : seulement sans filtre (la recherche renvoie alors tous les templates publiés).
+  const featured = useMemo(() => (activeCount === 0 ? results.filter((t) => t.featured) : []), [activeCount, results]);
   const reset = () => {
     setQ("");
     setTheme("");
@@ -157,6 +159,40 @@ export function TemplateBrowser({ initial }: { initial: TemplateCard[] }) {
       </AnimatePresence>
 
       {error && <p className="mb-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
+      <AnimatePresence initial={false}>
+        {featured.length > 0 && (
+          <motion.section
+            key="selection"
+            aria-labelledby="selection-titre"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.2, 0.9, 0.25, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="mb-8 rounded-[22px] border border-warning/25 bg-[linear-gradient(135deg,rgb(242_193_78/0.08),transparent_55%)] p-4 sm:p-5">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 id="selection-titre" className="flex items-center gap-2 text-xl font-bold">
+                    <IconSparkle className="text-warning" /> Sélection de l’équipe
+                  </h2>
+                  <p className="text-sm text-muted">Nos coups de cœur du moment, choisis pour leur qualité et leur finition.</p>
+                </div>
+                <p className="font-mono text-xs text-muted">
+                  {featured.length} template{featured.length > 1 ? "s" : ""}
+                </p>
+              </div>
+              <ul className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pt-2 pb-2">
+                {featured.map((t) => (
+                  <li key={t.id} className="w-[260px] shrink-0 snap-start sm:w-[280px]">
+                    <TemplateTile t={t} compact />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
       <motion.ul layout className={cx("grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", pending && "opacity-70 transition-opacity")}>
         <AnimatePresence mode="popLayout">
           {results.map((t, i) => (

@@ -1,10 +1,10 @@
-import { backups, desc, eq, getDb, installations, projects, templates } from "@mys/db";
+import { backups, desc, eq, getDb, installations, projects, templateReviews, templates } from "@mys/db";
 import { withUser } from "@/lib/api";
 
 /** Export des données du compte (droit d’accès et de portabilité), au format JSON. */
 export const GET = withUser(async (_req, user) => {
   const db = getDb();
-  const [proj, backs, inst, pubs] = await Promise.all([
+  const [proj, backs, inst, pubs, reviews] = await Promise.all([
     db.select({ id: projects.id, name: projects.name, createdAt: projects.createdAt, updatedAt: projects.updatedAt, spec: projects.spec }).from(projects).where(eq(projects.userId, user.id)),
     db
       .select({ id: backups.id, guildId: backups.guildId, guildName: backups.guildName, kind: backups.kind, label: backups.label, version: backups.version, summary: backups.summary, createdAt: backups.createdAt })
@@ -16,6 +16,11 @@ export const GET = withUser(async (_req, user) => {
       .select({ id: templates.id, name: templates.name, status: templates.status, viewCount: templates.viewCount, installCount: templates.installCount, submittedAt: templates.submittedAt })
       .from(templates)
       .where(eq(templates.authorUserId, user.id)),
+    db
+      .select({ template: templates.name, rating: templateReviews.rating, comment: templateReviews.comment, hiddenAt: templateReviews.hiddenAt, createdAt: templateReviews.createdAt, updatedAt: templateReviews.updatedAt })
+      .from(templateReviews)
+      .innerJoin(templates, eq(templates.id, templateReviews.templateId))
+      .where(eq(templateReviews.userId, user.id)),
   ]);
   const body = JSON.stringify(
     {
@@ -25,6 +30,7 @@ export const GET = withUser(async (_req, user) => {
       backups: backs,
       installations: inst,
       publications: pubs,
+      reviews,
     },
     null,
     2,
