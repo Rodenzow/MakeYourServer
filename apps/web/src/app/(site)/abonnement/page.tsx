@@ -33,6 +33,7 @@ const PREMIUM_INCLUDES = [
   "Plus de projets et de sauvegardes conservées, versionnées",
   "Sauvegardes programmées et restauration sélective",
   "Export de messages sélectionnés (republication signalée comme telle)",
+  "Messages programmés : annonces et rappels publiés par le bot à l’heure prévue",
 ];
 
 const FAQ: Array<[string, string]> = [

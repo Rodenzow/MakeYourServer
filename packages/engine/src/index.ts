@@ -9,5 +9,6 @@ export * from "./services/quotas";
 export * from "./services/backups";
 export * from "./services/installs";
 export * from "./services/billing";
+export * from "./services/scheduled-messages";
 export * from "./sandbox";
 export * from "./services/audit";

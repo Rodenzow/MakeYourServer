@@ -34,6 +34,8 @@ export interface PlanQuotas {
   archiveOnRestore: boolean;
   /** Durée de conservation des sauvegardes (jours, 0 = illimitée). */
   backupRetentionDays: number;
+  /** Messages programmés actifs (envoyés par le bot dans un salon). */
+  scheduledMessages: number;
 }
 
 export const DEFAULT_QUOTAS: Record<PlanKey, PlanQuotas> = {
@@ -51,6 +53,7 @@ export const DEFAULT_QUOTAS: Record<PlanKey, PlanQuotas> = {
     selectiveRestore: false,
     archiveOnRestore: true,
     backupRetentionDays: 90,
+    scheduledMessages: 0,
   },
   premium: {
     maxProjects: 50,
@@ -66,6 +69,7 @@ export const DEFAULT_QUOTAS: Record<PlanKey, PlanQuotas> = {
     selectiveRestore: true,
     archiveOnRestore: true,
     backupRetentionDays: 0,
+    scheduledMessages: 25,
   },
 };
 
@@ -83,4 +87,5 @@ export const QUOTA_LABELS: Record<keyof PlanQuotas, string> = {
   selectiveRestore: "Restauration sélective",
   archiveOnRestore: "Archivage des anciens salons",
   backupRetentionDays: "Conservation des sauvegardes (jours, 0 = illimitée)",
+  scheduledMessages: "Messages programmés actifs",
 };

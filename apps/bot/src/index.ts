@@ -73,6 +73,8 @@ function bind() {
       gateway,
       instanceId: `bot-${c.user.id.slice(-4)}-${process.pid}`,
       onInstallationProgress: (id) => updateFollowup(client, id),
+      // Messages programmés (Premium) : vérifiés toutes les 30 s.
+      scheduledMessagesMs: 30_000,
       heartbeat: () => ({ guildCount: client.guilds.cache.size, gatewayStatus: client.ws.status === 0 ? "connecté" : `statut ${client.ws.status}` }),
     });
   });

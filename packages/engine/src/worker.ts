@@ -22,6 +22,7 @@ import type { GuildGateway } from "./gateway";
 import { LeaseLostError, RetryLaterError, runInstallation } from "./executor";
 import { createBackup, purgeExpiredBackups, QuotaError } from "./services/backups";
 import { JOB_INSTALL } from "./services/installs";
+import { startScheduledMessages } from "./services/scheduled-messages";
 
 export const JOB_BACKUP = "backup.create";
 
@@ -34,6 +35,8 @@ export interface WorkerOptions {
   onBackupDone?: (payload: Record<string, unknown>, result: { ok: boolean; message: string }) => Promise<void> | void;
   heartbeat?: () => { guildCount: number; gatewayStatus: string };
   log?: (msg: string) => void;
+  /** Intervalle d’envoi des messages programmés (défaut : 30 s ; 0 = désactivé). */
+  scheduledMessagesMs?: number;
 }
 
 /**
@@ -121,7 +124,7 @@ export function startWorker(opts: WorkerOptions) {
     }
   };
 
-  /** Tâches périodiques : sauvegardes programmées, purge, sessions expirées. */
+  /** Tâches périodiques : sauvegardes programmées, purge, sessions expirées (messages programmés : voir plus bas, toutes les 30 s). */
   const scheduler = async () => {
     try {
       const due = await getDb()
@@ -146,6 +149,8 @@ export function startWorker(opts: WorkerOptions) {
   const hbTimer = setInterval(beat, 30_000);
   const schedTimer = setInterval(scheduler, 60_000);
   void scheduler();
+  // Messages programmés (Premium) : envoi des messages échus, verrouillés un par un.
+  const stopMessages = opts.scheduledMessagesMs === 0 ? () => {} : startScheduledMessages(opts.gateway, { intervalMs: opts.scheduledMessagesMs ?? 30_000, log });
   const running = loop();
   log(`démarré (${instanceId})`);
 
@@ -155,6 +160,7 @@ export function startWorker(opts: WorkerOptions) {
       stopped = true;
       clearInterval(hbTimer);
       clearInterval(schedTimer);
+      stopMessages();
       await running;
     },
   };
