@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
   const shared = projects.filter((p) => p.role === "editor");
   return (
     <>
-      <PageHeader eyebrow="Mes réalisations" title="Projets" actions={<ButtonLink href="/templates">Partir d’un template</ButtonLink>}>
+      <PageHeader eyebrow="Mes réalisations" title="Projets" help={{ href: "/aide#template-projet-sauvegarde" }} actions={<ButtonLink href="/templates">Partir d’un template</ButtonLink>}>
         Un projet est votre version personnelle d’un serveur : privée, enregistrée sur votre compte, modifiable avant et après installation. {mine.length}/{ent.quotas.maxProjects} projets utilisés
         {shared.length > 0 ? " (les projets partagés avec vous ne comptent pas)" : ""}.
       </PageHeader>

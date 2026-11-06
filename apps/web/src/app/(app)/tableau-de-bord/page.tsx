@@ -1,4 +1,6 @@
 import { AccountDanger } from "@/components/app/account-danger";
+import { GettingStarted } from "@/components/help/getting-started";
+import { HelpLink } from "@/components/ui";
 import Link from "next/link";
 import { and, desc, eq, getDb, savedTemplates, templates } from "@mys/db";
 import { getEntitlement, getUsage, listBackups, listInstallations } from "@mys/engine";
@@ -51,11 +53,21 @@ export default async function Dashboard() {
               ? { title: "Protégez votre serveur", text: "Une sauvegarde de la configuration vous permet de revenir en arrière en cas de souci.", href: "/sauvegardes", cta: "Faire une sauvegarde" }
               : { title: `Continuer « ${projects[0]!.name} »`, text: "Reprenez votre projet là où vous l’avez laissé.", href: `/projets/${projects[0]!.id}`, cta: "Ouvrir l’éditeur" };
 
+  // Checklist « Premiers pas » : masquée une fois les quatre étapes faites.
+  const steps = {
+    template: projects.length > 0,
+    customize: projects.some((p) => p.updatedAt.getTime() - p.createdAt.getTime() > 60_000),
+    bot: installs.length > 0,
+    install: installs.some((i) => i.status === "succeeded"),
+  };
+  const allDone = Object.values(steps).every(Boolean);
+
   return (
     <>
       <Reveal>
         <p className="eyebrow">Mon espace</p>
         <h1 className="mt-2 text-3xl font-bold md:text-4xl">Bonjour {user.globalName ?? user.username} 👋</h1>
+        <HelpLink href="/aide#premiers-pas" className="mt-2" />
       </Reveal>
 
       {/* Prochaine étape */}
@@ -75,6 +87,12 @@ export default async function Dashboard() {
           </div>
         </section>
       </Reveal>
+
+      {!allDone && (
+        <Reveal delay={0.15}>
+          <GettingStarted done={steps} projectId={projects[0]?.id} className="mt-6" />
+        </Reveal>
+      )}
 
       {/* Templates améliorés depuis la création d’un projet */}
       {notices.length > 0 && (
