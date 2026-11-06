@@ -1,15 +1,20 @@
 import Image from "next/image";
+import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { inviteUrl, listManageableGuilds } from "@/lib/guilds";
 import { Badge, ButtonLink, EmptyState, Notice, PageHeader } from "@/components/ui";
 import { botConfigured } from "@/lib/env";
+import { latestServerScores } from "@mys/engine";
+import { gradeFor, AUDIT_GRADE_LABELS } from "@mys/core";
+
+const GRADE_TONE = { excellent: "success", bon: "blue", moyen: "warning", fragile: "danger" } as const;
 
 export const metadata = { title: "Serveurs" };
 
 export default async function ServersPage({ searchParams }: { searchParams: Promise<{ rafraichir?: string }> }) {
   const user = await requireUser("/serveurs");
   const { rafraichir } = await searchParams;
-  const { guilds, needsReauth } = await listManageableGuilds(user.id, rafraichir === "1");
+  const [{ guilds, needsReauth }, scores] = await Promise.all([listManageableGuilds(user.id, rafraichir === "1"), latestServerScores(user.id)]);
   return (
     <>
       <PageHeader eyebrow="Discord" title="Mes serveurs accessibles" actions={<ButtonLink href="/serveurs?rafraichir=1" variant="secondary">Actualiser</ButtonLink>}>
@@ -33,7 +38,15 @@ export default async function ServersPage({ searchParams }: { searchParams: Prom
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {g.owner && <Badge>Propriétaire</Badge>}
                   {g.botPresent ? <Badge tone="success">Bot installé</Badge> : <Badge tone="warning">Bot absent</Badge>}
+                  {scores.has(g.id) && (
+                    <Badge tone={GRADE_TONE[gradeFor(scores.get(g.id)!.score)]}>
+                      Santé : {scores.get(g.id)!.score}/100 · {AUDIT_GRADE_LABELS[gradeFor(scores.get(g.id)!.score)]}
+                    </Badge>
+                  )}
                 </div>
+                <Link href={`/serveurs/${g.id}/sante`} className="mt-1.5 inline-block text-sm font-semibold text-blue hover:underline">
+                  Santé du serveur{scores.has(g.id) ? "" : " : analyse gratuite"} →
+                </Link>
               </div>
               {g.botPresent ? (
                 <ButtonLink href={`/sauvegardes?serveur=${g.id}`} size="sm" variant="secondary">

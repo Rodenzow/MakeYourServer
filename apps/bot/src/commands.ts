@@ -36,6 +36,7 @@ export const mysCommand = new SlashCommandBuilder()
       .setDescription("Restaurer une sauvegarde sur ce serveur")
       .addStringOption((o) => o.setName("sauvegarde").setDescription("Sauvegarde à restaurer").setRequired(true).setAutocomplete(true)),
   )
+  .addSubcommand((s) => s.setName("sante").setDescription("Analyser la santé de ce serveur"))
   .addSubcommand((s) => s.setName("statut").setDescription("Suivre la dernière installation sur ce serveur"))
   .addSubcommand((s) => s.setName("annuler").setDescription("Annuler l’installation en cours sur ce serveur"));
 

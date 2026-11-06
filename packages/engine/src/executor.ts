@@ -17,6 +17,7 @@ import {
   toBitfield,
   welcomeScreenPayload,
   effectiveChannelOverwrites,
+  everyoneDangerousRemovals,
   type GuildState,
   type Resolver,
   type ServerSpec,
@@ -299,6 +300,16 @@ async function executeStep(ctx: Ctx, step: StepRow & { startedAt: Date }, resume
       if (!state.roles.some((r) => r.id === target)) fail("Le rôle existant a été supprimé entre-temps. Relancez l’analyse.");
       if (step.kind === "role.update") await gateway.editRole(g, target, rolePayload(role), ctx.reason);
       return { status: "succeeded", detail: step.kind === "role.update" ? "Rôle mis à jour." : "Rôle existant réutilisé tel quel.", map: [{ localId, discordId: target, kind: "role", origin: "adopted" }] };
+    }
+    case "everyone.update": {
+      await refresh(ctx);
+      const everyone = ctx.state.roles.find((r) => r.id === g) ?? fail("Rôle @everyone introuvable.");
+      const removals = everyoneDangerousRemovals(spec, ctx.state);
+      if (!removals.length) return { status: "skipped", detail: "@everyone n’a déjà plus de permission sensible." };
+      const next = BigInt(everyone.permissions) & ~toBitfield(removals);
+      await gateway.editRole(g, g, { permissions: next.toString() }, ctx.reason);
+      everyone.permissions = next.toString();
+      return { status: "succeeded", detail: `${removals.length} permission(s) sensible(s) retirée(s) à @everyone.` };
     }
     case "role.positions": {
       await refresh(ctx);

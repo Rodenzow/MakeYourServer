@@ -3,6 +3,7 @@ import { botGuilds, closeDb, eq, getDb, logError } from "@mys/db";
 import { DiscordRestGateway, expireMissingDiscordEntitlements, startWorker, syncDiscordEntitlement } from "@mys/engine";
 import { config } from "./config";
 import { handleBackup, handleBackupList } from "./handlers/backup";
+import { handleHealth } from "./handlers/audit";
 import {
   handleRoleToggle,
   handleRulesAccept,
@@ -123,6 +124,8 @@ async function route(i: Interaction) {
           return await handleBackupList(i);
         case "restaurer":
           return await handleRestore(i, gateway);
+        case "sante":
+          return await handleHealth(i, gateway);
         case "statut":
           return await handleStatus(i);
         case "annuler":
