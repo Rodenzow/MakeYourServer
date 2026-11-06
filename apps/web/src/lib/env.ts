@@ -23,7 +23,15 @@ export const env = {
   contactEmail: process.env.CONTACT_EMAIL ?? "",
   /** Éditeur du site (nom ou raison sociale), affiché dans les mentions légales. */
   legalEditor: process.env.LEGAL_EDITOR ?? "",
+  /** Facultatif : jeton Cloudflare Web Analytics (mesure d’audience sans cookie). */
+  cfAnalyticsToken: process.env.CF_ANALYTICS_TOKEN ?? "",
 };
+
+/** Jeton Cloudflare Web Analytics s’il est défini et bien formé, sinon null. */
+export function analyticsToken() {
+  const t = env.cfAnalyticsToken.trim();
+  return /^[A-Za-z0-9_-]{8,128}$/.test(t) ? t : null;
+}
 
 export const discordConfigured = () => !!(env.discordClientId && env.discordClientSecret);
 export const botConfigured = () => !!(env.discordBotToken && env.discordClientId) || env.sandbox;

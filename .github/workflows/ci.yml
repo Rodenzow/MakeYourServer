@@ -1,0 +1,67 @@
+# Intégration continue : vérifie chaque proposition de modification AVANT la mise en ligne.
+# Se lance sur chaque pull request et sur chaque push d’une autre branche que main
+# (main est déployée par deploy-cloudflare.yml). Aucun secret n’est nécessaire :
+# les tests utilisent une base PostgreSQL jetable et un serveur Discord simulé.
+
+name: Intégration continue
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+# Une seule exécution par branche : un nouveau push annule l’exécution précédente.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Types, tests unitaires et de bout en bout
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mys
+          POSTGRES_PASSWORD: mys
+          POSTGRES_DB: mys_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mys -d mys_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://mys:mys@localhost:5432/mys_test
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Vérifier les types
+        run: pnpm -r typecheck
+
+      - name: Tests unitaires et d’intégration
+        run: pnpm exec vitest run
+
+      # Construit le site (next build), puis le teste par HTTP avec le worker en bac à sable.
+      - name: Tests de bout en bout
+        run: bash scripts/e2e.sh
+
+      - name: Journaux des tests de bout en bout (en cas d’échec)
+        if: failure()
+        run: |
+          for f in /tmp/mys-e2e-web.log /tmp/mys-e2e-worker.log; do
+            if [ -f "$f" ]; then echo "::group::$f"; tail -n 200 "$f"; echo "::endgroup::"; fi
+          done

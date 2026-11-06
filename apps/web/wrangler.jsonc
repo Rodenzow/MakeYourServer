@@ -14,6 +14,14 @@
   // Rapproche l’exécution de la base de données quand c’est plus rapide (pages connectées).
   "placement": { "mode": "smart" },
   "observability": { "enabled": true },
+  // Limites anti-abus (Workers Rate Limiting) appliquées par worker.ts aux écritures vers /api/*,
+  // par adresse IP. Période : 10 ou 60 secondes. namespace_id : nombre libre, unique dans le compte.
+  // Jamais limités : /api/billing/webhook et /api/auth/*. Voir src/lib/rate-limit.ts.
+  "ratelimits": [
+    { "name": "RATE_LIMIT_API", "namespace_id": "4101", "simple": { "limit": 60, "period": 60 } },
+    { "name": "RATE_LIMIT_AI", "namespace_id": "4102", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RATE_LIMIT_REPORT", "namespace_id": "4103", "simple": { "limit": 5, "period": 60 } }
+  ],
   // Variables non secrètes. Les secrets (jetons, clés) s’ajoutent avec `wrangler secret put`
   // ou automatiquement par le workflow GitHub (voir DEPLOIEMENT-CLOUDFLARE.md).
   "vars": {

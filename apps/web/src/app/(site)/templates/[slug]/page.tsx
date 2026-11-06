@@ -18,7 +18,16 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const t = await getPublishedTemplate((await params).slug);
-  return { title: t ? `Template ${t.name}` : "Template introuvable", description: t?.tagline };
+  if (!t) return { title: "Template introuvable" };
+  const title = `Template ${t.name}`;
+  // L’image de partage vient de opengraph-image.tsx (même dossier), ajoutée automatiquement.
+  return {
+    title,
+    description: t.tagline,
+    alternates: { canonical: `/templates/${t.slug}` },
+    openGraph: { type: "website", siteName: "Make Your Server", locale: "fr_FR", title, description: t.tagline, url: `/templates/${t.slug}` },
+    twitter: { card: "summary_large_image", title, description: t.tagline },
+  };
 }
 
 export default async function TemplatePage({ params }: { params: Promise<{ slug: string }> }) {

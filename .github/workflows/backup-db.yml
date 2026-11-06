@@ -1,0 +1,121 @@
+# Sauvegarde quotidienne de la base de données (Supabase).
+# Guide (création des secrets, restauration) : DEPLOIEMENT-CLOUDFLARE.md, « Sauvegarde de la base ».
+#
+# 1. pg_dump (format « custom ») des schémas de l’application ;
+# 2. chiffrement immédiat (AES-256, clé BACKUP_ENCRYPTION_KEY, à défaut APP_ENCRYPTION_KEY) :
+#    aucune copie en clair n’est écrite sur le disque ;
+# 3. dépôt en artefact GitHub (conservé 30 jours, visible seulement des membres du dépôt) ;
+# 4. facultatif : copie dans Cloudflare R2 si la variable R2_BACKUP_BUCKET est définie.
+#
+# Se lance chaque nuit, ou à la main : onglet « Actions » → « Sauvegarde de la base » → « Run workflow ».
+
+name: Sauvegarde de la base
+
+on:
+  schedule:
+    # Tous les jours à 03 h 17 UTC (minute « non ronde » : moins d’attente chez GitHub).
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: backup-db
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sauvegarde:
+    name: Sauvegarder et chiffrer la base
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      BACKUP_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY || secrets.APP_ENCRYPTION_KEY }}
+      KEY_SOURCE: ${{ secrets.BACKUP_ENCRYPTION_KEY != '' && 'BACKUP_ENCRYPTION_KEY' || 'APP_ENCRYPTION_KEY' }}
+      R2_BACKUP_BUCKET: ${{ vars.R2_BACKUP_BUCKET }}
+    steps:
+      - name: Vérifier les secrets
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "::error::Secret DATABASE_URL manquant (voir DEPLOIEMENT-CLOUDFLARE.md)."; exit 1; fi
+          if [ -z "$BACKUP_KEY" ]; then echo "::error::Ni BACKUP_ENCRYPTION_KEY ni APP_ENCRYPTION_KEY : impossible de chiffrer la sauvegarde."; exit 1; fi
+          echo "Clé de chiffrement utilisée : secret $KEY_SOURCE (gardez-en une copie hors de GitHub)."
+
+      # Supabase utilise une version récente de PostgreSQL : pg_dump doit être au moins aussi
+      # récent que le serveur. On installe le client le plus récent du dépôt officiel (PGDG).
+      - name: Installer pg_dump récent (dépôt officiel PostgreSQL)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client > /dev/null
+          bin=$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -n 1)
+          major=$(basename "$(dirname "$bin")")
+          if [ "$major" -lt 17 ]; then echo "::error::pg_dump $major trop ancien (17 minimum)."; exit 1; fi
+          echo "$bin" >> "$GITHUB_PATH"
+          "$bin/pg_dump" --version
+
+      - name: Sauvegarder et chiffrer
+        id: dump
+        run: |
+          set -euo pipefail
+          url="$DATABASE_URL"
+          # Le mode « Transaction » du pooler Supabase (port 6543) ne convient pas à pg_dump :
+          # on passe au mode « Session » (port 5432) du même pooler.
+          if [[ "$url" == *pooler.supabase.com:6543/* ]]; then
+            url="${url/:6543\//:5432/}"
+            echo "Port 6543 (Transaction) remplacé par 5432 (Session) pour pg_dump."
+          fi
+          echo "::add-mask::$url"
+          name="mys-base-$(date -u +%Y-%m-%d-%H%M).dump.enc"
+          mkdir -p sauvegarde
+          # Schémas de l’application (public) et journal des migrations (drizzle).
+          pg_dump --format=custom --compress=6 --no-owner --no-privileges \
+            --schema=public --schema=drizzle --dbname="$url" \
+            | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_KEY -out "sauvegarde/$name"
+          size=$(stat -c %s "sauvegarde/$name")
+          if [ "$size" -lt 1024 ]; then echo "::error::Sauvegarde anormalement petite ($size octets)."; exit 1; fi
+          (cd sauvegarde && sha256sum "$name" > "$name.sha256")
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Sauvegarde chiffrée : $name ($size octets)."
+
+      - name: Publier en artefact GitHub (30 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.dump.outputs.name }}
+          path: sauvegarde/
+          retention-days: 30
+          if-no-files-found: error
+          # Déjà compressé et chiffré : inutile de recompresser.
+          compression-level: 0
+
+      # Facultatif : copie hors de GitHub, dans un bucket Cloudflare R2.
+      # Le jeton CLOUDFLARE_API_TOKEN doit alors avoir la permission « Workers R2 Storage : Edit ».
+      - name: Copier dans Cloudflare R2 (si R2_BACKUP_BUCKET est défini)
+        if: ${{ vars.R2_BACKUP_BUCKET != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NAME: ${{ steps.dump.outputs.name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID sont nécessaires pour la copie dans R2."; exit 1
+          fi
+          npx --yes wrangler@4.154.0 r2 object put "$R2_BACKUP_BUCKET/base/$NAME" --file "sauvegarde/$NAME" \
+            --content-type application/octet-stream --remote
+          echo "Copie déposée dans R2 : $R2_BACKUP_BUCKET/base/$NAME"
+
+      - name: Résumé
+        env:
+          NAME: ${{ steps.dump.outputs.name }}
+        run: |
+          {
+            echo "### Sauvegarde de la base ✅"
+            echo "- Fichier chiffré : \`$NAME\` (artefact de cette exécution, 30 jours)"
+            if [ -n "$R2_BACKUP_BUCKET" ]; then echo "- Copie R2 : \`$R2_BACKUP_BUCKET/base/$NAME\`"; fi
+            echo "- Clé de déchiffrement : secret \`$KEY_SOURCE\`"
+            echo "- Restauration : DEPLOIEMENT-CLOUDFLARE.md, « Restaurer une sauvegarde »"
+          } >> "$GITHUB_STEP_SUMMARY"
