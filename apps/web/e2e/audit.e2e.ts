@@ -32,7 +32,7 @@ const call = (path: string, init: RequestInit & { cookie?: string; origin?: stri
 let me: Awaited<ReturnType<typeof session>>;
 
 beforeAll(async () => {
-  me = await session("300000000000000003", "sante-e2e");
+  me = await session("310000000000000031", "sante-e2e");
 });
 
 afterAll(closeDb);
