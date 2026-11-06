@@ -34,6 +34,8 @@ const Action = z.discriminatedUnion("action", [
   z.object({ action: z.literal("archive") }),
   z.object({ action: z.literal("reject"), note: z.string().trim().min(3, "Expliquez le refus à l’auteur.").max(500) }),
   z.object({ action: z.literal("draft") }),
+  z.object({ action: z.literal("feature") }),
+  z.object({ action: z.literal("unfeature") }),
 ]);
 
 /** Publication : action distincte, explicite et journalisée. */
@@ -46,7 +48,14 @@ export const POST = withAdmin<{ id: string }>(async (req, admin, { id }) => {
     if (!v.ok) throw new HttpError(409, `Publication impossible : ${v.errors.length} erreur(s) de validation (${v.errors[0]?.message}).`);
     await db.update(templates).set({ status: "published", publishedAt: t.publishedAt ?? new Date(), reviewNote: null, reviewedAt: new Date(), reviewedByUserId: admin.id, updatedAt: new Date() }).where(eq(templates.id, id));
   } else if (body.action === "archive") {
-    await db.update(templates).set({ status: "archived", updatedAt: new Date() }).where(eq(templates.id, id));
+    // Un template retiré quitte aussi la sélection : il n’y revient pas tout seul s’il est republié.
+    await db.update(templates).set({ status: "archived", featured: false, updatedAt: new Date() }).where(eq(templates.id, id));
+  } else if (body.action === "feature") {
+    // Seul un template visible dans la bibliothèque peut rejoindre la « Sélection de l’équipe ».
+    if (t.status !== "published") throw new HttpError(409, "Seul un template publié peut être mis en avant.");
+    await db.update(templates).set({ featured: true, updatedAt: new Date() }).where(eq(templates.id, id));
+  } else if (body.action === "unfeature") {
+    await db.update(templates).set({ featured: false, updatedAt: new Date() }).where(eq(templates.id, id));
   } else if (body.action === "reject") {
     await db.update(templates).set({ status: "rejected", reviewNote: body.note, reviewedAt: new Date(), reviewedByUserId: admin.id, updatedAt: new Date() }).where(eq(templates.id, id));
   } else {

@@ -12,7 +12,12 @@ import { UseTemplateButton } from "@/components/templates/use-template-button";
 import { StickyCta } from "@/components/templates/sticky-cta";
 import { AnimatedNumber, Reveal } from "@/components/motion";
 import { Badge } from "@/components/ui";
-import { ChannelIcon, IconCheck, IconHand } from "@/components/icons";
+import { ChannelIcon, IconCheck, IconHand, IconSparkle } from "@/components/icons";
+import { Reviews } from "@/components/templates/reviews";
+import { Stars } from "@/components/templates/stars";
+import { getTemplateLineage } from "@/lib/community";
+import { formatRating } from "@/lib/community-rules";
+import { getReviewDistribution, getUserReview, listReviews, ratingSummary, reviewEligibility } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +30,16 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const t = await getPublishedTemplate(slug);
   if (!t) notFound();
-  const [user, author] = await Promise.all([getCurrentUser(), getTemplateAuthor(t)]);
+  const user = await getCurrentUser();
+  const [author, lineage, distribution, firstPage, mine, eligibility] = await Promise.all([
+    getTemplateAuthor(t),
+    getTemplateLineage(t),
+    getReviewDistribution(t.id),
+    listReviews(t.id, 1),
+    user ? getUserReview(user.id, t.id) : Promise.resolve(null),
+    reviewEligibility(user?.id ?? null, t),
+  ]);
+  const rating = ratingSummary(t);
   const spec = t.spec as ServerSpec;
   const s = specStats(spec);
   const v = themeVisual(t.theme);
@@ -60,10 +74,25 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
             <Badge tone="night">{THEME_LABELS[t.theme as keyof typeof THEME_LABELS] ?? t.theme}</Badge>
             <Badge>{SIZE_LABELS[t.size as keyof typeof SIZE_LABELS]}</Badge>
             {t.official ? <Badge tone="blue">Template officiel</Badge> : <Badge tone="blue">Proposé par la communauté, vérifié</Badge>}
+            {t.featured && (
+              <Badge tone="warning">
+                <IconSparkle size={12} /> Sélection de l’équipe
+              </Badge>
+            )}
           </div>
           <h1 className="mt-3 text-4xl font-extrabold md:text-5xl">{t.name}</h1>
           <p className="mt-3 text-lg text-ink">{t.tagline}</p>
           <p className="mt-3 max-w-2xl text-muted">{t.description}</p>
+          {lineage.basedOn && (
+            <p className="mt-3 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink">
+              <IconSparkle size={14} className="text-peri" />
+              Inspiré de{" "}
+              <Link href={`/templates/${lineage.basedOn.slug}`} className="link font-semibold">
+                « {lineage.basedOn.name} »
+              </Link>
+              {lineage.basedOn.official ? <span className="text-muted">(template officiel)</span> : lineage.basedOn.author ? <span className="text-muted">de {lineage.basedOn.author.name}</span> : null}
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
             {t.official ? (
               <span className="inline-flex items-center gap-2">
@@ -78,8 +107,24 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
                 ) : (
                   <span className="grid size-6 place-items-center rounded-full bg-mist text-xs">?</span>
                 )}
-                Par <strong className="text-fg">{author?.name ?? "un membre de la communauté"}</strong>
+                Par{" "}
+                {author ? (
+                  <Link href={`/createurs/${author.id}`} className="link font-semibold">
+                    {author.name}
+                  </Link>
+                ) : (
+                  <strong className="text-fg">un membre de la communauté</strong>
+                )}
               </span>
+            )}
+            {rating.average !== null && (
+              <a href="#avis" className="inline-flex items-center gap-1.5 rounded-md hover:text-fg">
+                <Stars value={rating.average} size={14} />
+                <strong className="text-fg">{formatRating(rating.average)}</strong>
+                <span>
+                  ({rating.count} avis)
+                </span>
+              </a>
             )}
             <span>
               <strong className="text-fg">{t.viewCount.toLocaleString("fr-FR")}</strong> vue{t.viewCount > 1 ? "s" : ""}
@@ -236,6 +281,35 @@ export default async function TemplatePage({ params }: { params: Promise<{ slug:
           </div>
         )}
       </section>
+
+      {lineage.remixes.length > 0 && (
+        <section className="mt-12" aria-labelledby="remix-titre">
+          <h2 id="remix-titre" className="flex items-center gap-2 text-xl font-bold">
+            <IconSparkle className="text-peri" /> Remixé {lineage.remixes.length} fois
+          </h2>
+          <p className="mt-1 text-sm text-muted">Des membres sont partis de ce template pour créer et publier leur propre version.</p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {lineage.remixes.map((r) => (
+              <li key={r.slug}>
+                <Link href={`/templates/${r.slug}`} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm transition-colors hover:border-edge">
+                  <span className="font-semibold text-fg">{r.name}</span>
+                  {r.author && <span className="text-muted">par {r.author.name}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Reviews
+        slug={t.slug}
+        summary={rating}
+        distribution={distribution}
+        initial={{ reviews: firstPage.reviews, hasMore: firstPage.hasMore }}
+        mine={mine}
+        eligibility={eligibility}
+        currentUserId={user?.id ?? null}
+      />
 
       <div className="mt-12 flex flex-col items-center gap-4">
         <UseTemplateButton slug={t.slug} loggedIn={!!user} label="Utiliser ce template" />

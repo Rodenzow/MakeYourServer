@@ -21,6 +21,7 @@ import {
 } from "@mys/db";
 import { getEntitlement } from "@mys/engine";
 import { HttpError } from "./api";
+import { RATING_PRIOR_MEAN, RATING_PRIOR_WEIGHT } from "./community-rules";
 
 export type TemplateRow = typeof schema.templates.$inferSelect;
 export type ProjectRow = typeof schema.projects.$inferSelect;
@@ -34,7 +35,11 @@ export interface TemplateQuery {
   features?: string[];
   /** official : templates officiels · community : publiés par les membres */
   source?: "official" | "community";
-  sort?: "popular" | "recent" | "views" | "name";
+  sort?: "popular" | "recent" | "views" | "name" | "rating";
+  /** Uniquement les templates mis en avant par l’équipe. */
+  featured?: boolean;
+  /** Templates communautaires d’un créateur (seulement ceux où il a accepté d’afficher son pseudo). */
+  authorId?: string;
 }
 
 /** Recherche dans les templates PUBLIÉS uniquement (jamais les projets ni les sauvegardes). */
@@ -48,6 +53,9 @@ export async function searchTemplates(query: TemplateQuery) {
   if (query.size) conds.push(eq(templates.size, query.size));
   for (const f of query.features ?? []) conds.push(sql`${templates.features} ? ${f}`);
   if (query.source) conds.push(eq(templates.official, query.source === "official"));
+  if (query.featured) conds.push(eq(templates.featured, true));
+  if (query.authorId) conds.push(eq(templates.authorUserId, query.authorId), eq(templates.official, false), eq(templates.showAuthor, true));
+  const popularity = sql`${templates.popularity} + ${templates.installCount} * 2 + ${templates.viewCount} / 20`;
   const order =
     query.sort === "recent"
       ? [desc(templates.publishedAt)]
@@ -55,7 +63,10 @@ export async function searchTemplates(query: TemplateQuery) {
         ? [asc(templates.name)]
         : query.sort === "views"
           ? [desc(templates.viewCount)]
-          : [desc(sql`${templates.popularity} + ${templates.installCount} * 2 + ${templates.viewCount} / 20`)];
+          : query.sort === "rating"
+            ? // Moyenne bayésienne : quelques avis isolés ne suffisent pas à passer devant un template très bien noté par beaucoup.
+              [desc(sql`(${templates.ratingSum} + ${RATING_PRIOR_WEIGHT * RATING_PRIOR_MEAN}::float) / (${templates.ratingCount} + ${RATING_PRIOR_WEIGHT})`), desc(templates.ratingCount), desc(popularity)]
+            : [desc(popularity)];
   // Les cartes n’ont pas besoin du contenu des messages ni de l’AutoMod : on ne
   // transfère qu’une version allégée de la spécification (bien plus rapide).
   const { spec: _spec, ...columns } = getTableColumns(templates);
@@ -64,7 +75,7 @@ export async function searchTemplates(query: TemplateQuery) {
       t: columns,
       spec: sql<CardSpec>`${templates.spec} - 'messages' - 'automod' - 'serverGuide' - 'welcomeScreen' - 'features'`,
       messageCount: sql<number>`jsonb_array_length(coalesce(${templates.spec}->'messages', '[]'::jsonb))`,
-      author: { username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar },
+      author: { id: users.id, username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar },
     })
     .from(templates)
     .leftJoin(users, eq(users.id, templates.authorUserId))
@@ -76,18 +87,21 @@ export async function searchTemplates(query: TemplateQuery) {
 /** Spécification allégée utilisée par les cartes de la bibliothèque. */
 type CardSpec = Pick<ServerSpec, "meta" | "roles" | "categories" | "uncategorized" | "onboarding">;
 
-type AuthorRow = { username: string; globalName: string | null; discordId: string; avatar: string | null } | null;
+type AuthorRow = { id: string; username: string; globalName: string | null; discordId: string; avatar: string | null } | null;
+
+/** Avatar Discord d’un membre (null : avatar par défaut). */
+export const discordAvatarUrl = (discordId: string, avatar: string | null, size = 64) => (avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=${size}` : null);
 
 /** Auteur affiché publiquement : uniquement pour un template communautaire dont l’auteur l’a accepté. */
 export function publicAuthor(t: Pick<TemplateRow, "official" | "showAuthor">, a: AuthorRow) {
   if (t.official || !t.showAuthor || !a) return null;
-  return { name: a.globalName ?? a.username, avatarUrl: a.avatar ? `https://cdn.discordapp.com/avatars/${a.discordId}/${a.avatar}.png?size=64` : null };
+  return { id: a.id, name: a.globalName ?? a.username, avatarUrl: discordAvatarUrl(a.discordId, a.avatar) };
 }
 
 export async function getTemplateAuthor(t: TemplateRow) {
   if (t.official || !t.showAuthor || !t.authorUserId) return null;
   const [a] = await getDb()
-    .select({ username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar })
+    .select({ id: users.id, username: users.username, globalName: users.globalName, discordId: users.discordId, avatar: users.avatar })
     .from(users)
     .where(eq(users.id, t.authorUserId));
   return publicAuthor(t, a ?? null);
@@ -107,6 +121,8 @@ export function templateCard(t: Omit<TemplateRow, "spec"> & { spec: CardSpec }, 
     popularity: t.popularity + t.installCount * 2,
     installCount: t.installCount,
     viewCount: t.viewCount,
+    featured: t.featured,
+    rating: t.ratingCount > 0 ? { average: t.ratingSum / t.ratingCount, count: t.ratingCount } : null,
     author: publicAuthor(t, author),
     stats: { channels, roles: t.spec.roles.length, messages: messageCount },
     accentColor: t.spec.meta.accentColor ?? 0x83a8f3,
